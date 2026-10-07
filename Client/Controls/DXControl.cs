@@ -1,0 +1,2481 @@
+using Client.Envir;
+using Client.Scenes;
+using Library;
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Windows.Forms;
+
+//Cleaned
+namespace Client.Controls
+{
+    public static class Constants
+    {
+        public static readonly Color ActiveTabColour = Color.White;
+        public static readonly Color InactiveTabColour = Color.FromArgb(123, 105, 66);
+        public static readonly Color TextColour = Color.White;
+        public static readonly Color PrimaryColour = Color.FromArgb(198, 166, 99);
+        public static readonly Color RowBackColour = Color.FromArgb(25, 20, 0);
+        public static readonly Color SelectedRowBackColour = Color.FromArgb(80, 80, 125);
+        public static readonly Color InactiveBorderColour = Color.FromArgb(99, 83, 50);
+        public static readonly Color WindowBackColour = Color.FromArgb(16, 8, 8);
+    }
+
+    public class DXControl : IDisposable, ITextureCacheItem
+    {
+        #region Static
+        public static List<DXControl> MessageBoxList = new List<DXControl>();
+
+        public static DXControl MouseControl
+        {
+            get => _MouseControl;
+            set
+            {
+                if (_MouseControl == value) return;
+
+                DXControl oldControl = _MouseControl;
+                _MouseControl = value;
+
+                oldControl?.OnMouseLeave();
+
+                _MouseControl?.OnMouseEnter();
+            }
+        }
+        private static DXControl _MouseControl;
+
+        public static DXControl FocusControl
+        {
+            get => _FocusControl;
+            set
+            {
+                if (_FocusControl == value) return;
+
+                DXControl oldControl = _FocusControl;
+                _FocusControl = value;
+                oldControl?.OnLostFocus();
+
+                _FocusControl?.OnFocus();
+
+                DXTextBox control = value as DXTextBox;
+
+                if (DXTextBox.ActiveTextBox != null && DXTextBox.ActiveTextBox.KeepFocus && control == null) return;
+
+                DXTextBox.ActiveTextBox = value as DXTextBox;
+            }
+        }
+        private static DXControl _FocusControl;
+
+        public static DXScene ActiveScene
+        {
+            get => _ActiveScene;
+            set
+            {
+                if (_ActiveScene == value) return;
+
+                _ActiveScene = value;
+
+                _ActiveScene?.CheckIsVisible();
+            }
+        }
+        private static DXScene _ActiveScene;
+
+        public static int DefaultHeight { get; }
+        public static int TabHeight { get; }
+        public static int SmallButtonHeight { get; }
+
+        public static DXLabel DebugLabel, HintLabel, PingLabel;
+        protected static MirLibrary InterfaceLibrary;
+
+        static DXControl()
+        {
+            DebugLabel = new DXLabel
+            {
+                BackColour = Color.FromArgb(125, 50, 50, 50),
+                Border = true,
+                BorderColour = Color.Black,
+                Location = new Point(5, 5),
+                IsVisible = Config.DebugLabel,
+                Outline = false,
+                ForeColour = Color.White,
+            };
+            HintLabel = new DXLabel
+            {
+                SeparateBackground = true,
+                BackColour = Color.FromArgb(255, 255, 255, 150),//Color.FromArgb(120, 0, 0, 0)
+                Border = true,
+                BorderColour = Color.Black,//Color.Yellow,
+                IsVisible = true,
+                Outline = false,
+                ForeColour = Color.Black,//Color.Yellow
+                PaddingBottom = 2
+            };
+            PingLabel = new DXLabel
+            {
+                BackColour = Color.FromArgb(125, 50, 50, 50),
+                Border = true,
+                BorderColour = Color.Black,
+                Location = new Point(5, 19),
+                IsVisible = Config.DebugLabel,
+                Outline = false,
+                ForeColour = Color.White,
+            };
+
+            CEnvir.LibraryList.TryGetValue(LibraryFile.Interface, out InterfaceLibrary);
+
+            if (InterfaceLibrary == null) return;
+
+            DefaultHeight = InterfaceLibrary.GetSize(16).Height;
+            TabHeight = InterfaceLibrary.GetSize(19).Height;
+            SmallButtonHeight = InterfaceLibrary.GetSize(41).Height;
+        }
+
+        #endregion
+
+        #region Properties
+
+        public bool UsesUIScale
+        {
+            get
+            {
+                if (ActiveScene is not GameScene game || this == game || this == game.MapControl)
+                    return false;
+
+                DXControl root = this;
+                while (root.Parent != null && root.Parent != game)
+                    root = root.Parent;
+
+                return root.Parent == game && root != game.MapControl;
+            }
+        }
+
+        private Size ActiveLayoutSize => UsesUIScale && ActiveScene is GameScene game ? game.UISize : ActiveScene.Size;
+        public static Size SceneLayoutSize => ActiveScene is GameScene game ? game.UISize : ActiveScene?.Size ?? Size.Empty;
+
+        protected internal List<DXControl> Controls { get; private set; } = new List<DXControl>();
+
+        private sealed class CachedChildControlSegment
+        {
+            public int StartIndex;
+            public int EndIndex;
+            public RenderTargetResource RenderTarget;
+            public Size RenderTargetSize;
+            public bool TextureValid;
+            public UICacheKey Key;
+            public Rectangle PhysicalBounds;
+        }
+
+        private readonly List<CachedChildControlSegment> _childRenderSegments = new List<CachedChildControlSegment>();
+        private bool _childRenderSegmentsValid;
+        private UICacheKey _childRenderKey;
+
+        public bool CacheChildControls
+        {
+            get => _CacheChildControls;
+            set
+            {
+                if (_CacheChildControls == value) return;
+
+                _CacheChildControls = value;
+                if (_CacheChildControls)
+                    InvalidateChildCache();
+                else
+                    ReleaseChildRenderTarget();
+            }
+        }
+        private bool _CacheChildControls;
+
+        public bool CacheInParent
+        {
+            get => _CacheInParent;
+            set
+            {
+                if (_CacheInParent == value) return;
+
+                _CacheInParent = value;
+                Parent?.InvalidateChildCache();
+            }
+        }
+        private bool _CacheInParent = true;
+
+        #region AllowDragOut
+
+        public bool AllowDragOut
+        {
+            get => _AllowDragOut;
+            set
+            {
+                if (_AllowDragOut == value) return;
+
+                bool oldValue = _AllowDragOut;
+                _AllowDragOut = value;
+
+                OnAllowDragOutChanged(oldValue, value);
+            }
+        }
+        private bool _AllowDragOut;
+        public event EventHandler<EventArgs> AllowDragOutChanged;
+        public virtual void OnAllowDragOutChanged(bool oValue, bool nValue)
+        {
+            UpdateClipAreaTree();
+            AllowDragOutChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region AllowResize
+
+        public bool AllowResize
+        {
+            get => _AllowResize;
+            set
+            {
+                if (_AllowResize == value) return;
+
+                bool oldValue = _AllowResize;
+                _AllowResize = value;
+
+                OnAllowResizeChanged(oldValue, value);
+            }
+        }
+        private bool _AllowResize;
+        public event EventHandler<EventArgs> AllowResizeChanged;
+        public virtual void OnAllowResizeChanged(bool oValue, bool nValue)
+        {
+            AllowResizeChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region BackColour
+
+        public Color BackColour
+        {
+            get => _BackColour;
+            set
+            {
+                if (_BackColour == value) return;
+
+                Color oldValue = _BackColour;
+                _BackColour = value;
+
+                OnBackColourChanged(oldValue, value);
+            }
+        }
+        private Color _BackColour;
+        public event EventHandler<EventArgs> BackColourChanged;
+        public virtual void OnBackColourChanged(Color oValue, Color nValue)
+        {
+            TextureValid = false;
+            InvalidateParentChildCache();
+            BackColourChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region Border
+
+        public bool Border
+        {
+            get => _Border;
+            set
+            {
+                if (_Border == value) return;
+
+                bool oldValue = _Border;
+                _Border = value;
+
+                OnBorderChanged(oldValue, value);
+            }
+        }
+        private bool _Border;
+        public event EventHandler<EventArgs> BorderChanged;
+        public virtual void OnBorderChanged(bool oValue, bool nValue)
+        {
+            UpdateBorderInformation();
+            InvalidateParentChildCache();
+            BorderChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region BorderColour
+
+        public Color BorderColour
+        {
+            get => _BorderColour;
+            set
+            {
+                if (_BorderColour == value) return;
+
+                Color oldValue = _BorderColour;
+                _BorderColour = value;
+
+                OnBorderColourChanged(oldValue, value);
+            }
+        }
+        private Color _BorderColour;
+        public event EventHandler<EventArgs> BorderColourChanged;
+        public virtual void OnBorderColourChanged(Color oValue, Color nValue)
+        {
+            InvalidateParentChildCache();
+            BorderColourChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region BorderInformation
+
+        public LinePoint[] BorderInformation
+        {
+            get => _BorderInformation;
+            set
+            {
+                if (_BorderInformation == value)
+                {
+                    return;
+                }
+
+                LinePoint[] oldValue = _BorderInformation;
+                _BorderInformation = value;
+
+                OnBorderInformationChanged(oldValue, value);
+            }
+        }
+        private LinePoint[] _BorderInformation;
+        public event EventHandler<EventArgs> BorderInformationChanged;
+        public virtual void OnBorderInformationChanged(LinePoint[] oValue, LinePoint[] nValue)
+        {
+            InvalidateParentChildCache();
+            BorderInformationChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region BorderSize
+
+        public float BorderSize
+        {
+            get => _BorderSize;
+            set
+            {
+                if (_BorderSize == value) return;
+
+                float oldValue = _BorderSize;
+                _BorderSize = value;
+
+                OnBorderSizeChanged(oldValue, value);
+            }
+        }
+        private float _BorderSize;
+        public event EventHandler<EventArgs> BorderSizeChanged;
+        public virtual void OnBorderSizeChanged(float oValue, float nValue)
+        {
+            InvalidateParentChildCache();
+            BorderSizeChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region CanResizeHeight
+
+        public bool CanResizeHeight
+        {
+            get => _CanResizeHeight;
+            set
+            {
+                if (_CanResizeHeight == value) return;
+
+                bool oldValue = _CanResizeHeight;
+                _CanResizeHeight = value;
+
+                OnCanResizeHeightChanged(oldValue, value);
+            }
+        }
+        private bool _CanResizeHeight;
+        public event EventHandler<EventArgs> CanResizeHeightChanged;
+        public virtual void OnCanResizeHeightChanged(bool oValue, bool nValue)
+        {
+            CanResizeHeightChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region CanResizeWidth
+
+        public bool CanResizeWidth
+        {
+            get => _CanResizeWidth;
+            set
+            {
+                if (_CanResizeWidth == value) return;
+
+                bool oldValue = _CanResizeWidth;
+                _CanResizeWidth = value;
+
+                OnCanResizeWidthChanged(oldValue, value);
+            }
+        }
+        private bool _CanResizeWidth;
+        public event EventHandler<EventArgs> CanResizeWidthChanged;
+        public virtual void OnCanResizeWidthChanged(bool oValue, bool nValue)
+        {
+            CanResizeWidthChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region DrawTexture
+
+        public bool DrawTexture
+        {
+            get => _DrawTexture;
+            set
+            {
+                if (_DrawTexture == value) return;
+
+                bool oldValue = _DrawTexture;
+                _DrawTexture = value;
+
+                OnDrawTextureChanged(oldValue, value);
+            }
+        }
+        private bool _DrawTexture;
+        public event EventHandler<EventArgs> DrawTextureChanged;
+        public virtual void OnDrawTextureChanged(bool oValue, bool nValue)
+        {
+            TextureValid = false;
+            InvalidateParentChildCache();
+            DrawTextureChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region DisplayArea
+
+        public Rectangle DisplayArea
+        {
+            get => _DisplayArea;
+            set
+            {
+                if (_DisplayArea == value) return;
+
+                Rectangle oldValue = _DisplayArea;
+                _DisplayArea = value;
+
+                OnDisplayAreaChanged(oldValue, value);
+            }
+        }
+        private Rectangle _DisplayArea;
+        public Rectangle ClipArea { get; private set; }
+        public event EventHandler<EventArgs> DisplayAreaChanged;
+        public virtual void OnDisplayAreaChanged(Rectangle oValue, Rectangle nValue)
+        {
+            UpdateClipArea();
+
+            foreach (DXControl control in Controls)
+            {
+                control.UpdateDisplayArea();
+                control.UpdateClipAreaTree();
+            }
+
+            UpdateBorderInformation();
+            InvalidateChildCache();
+            Parent?.InvalidateChildCache();
+            DisplayAreaChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region Enabled
+
+        public bool Enabled
+        {
+            get => _Enabled;
+            set
+            {
+                if (_Enabled == value) return;
+
+                bool oldValue = _Enabled;
+                _Enabled = value;
+
+                OnEnabledChanged(oldValue, value);
+            }
+        }
+        private bool _Enabled;
+        public event EventHandler<EventArgs> EnabledChanged;
+        public virtual void OnEnabledChanged(bool oValue, bool nValue)
+        {
+            CheckIsEnabled();
+            EnabledChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region ForeColour
+
+        public Color ForeColour
+        {
+            get => _ForeColour;
+            set
+            {
+                if (_ForeColour == value) return;
+
+                Color oldValue = _ForeColour;
+                _ForeColour = value;
+
+                OnForeColourChanged(oldValue, value);
+            }
+        }
+        private Color _ForeColour;
+        public event EventHandler<EventArgs> ForeColourChanged;
+        public virtual void OnForeColourChanged(Color oValue, Color nValue)
+        {
+            InvalidateParentChildCache();
+            ForeColourChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region Hint
+
+        public string Hint
+        {
+            get => _Hint;
+            set
+            {
+                if (_Hint == value) return;
+
+                string oldValue = _Hint;
+                _Hint = value;
+
+                OnHintChanged(oldValue, value);
+            }
+        }
+        private string _Hint;
+        public event EventHandler<EventArgs> HintChanged;
+        public virtual void OnHintChanged(string oValue, string nValue)
+        {
+            HintChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region HintPosition
+
+        public HintPosition HintPosition
+        {
+            get => _HintPosition;
+            set
+            {
+                if (_HintPosition == value) return;
+
+                HintPosition oldValue = _HintPosition;
+                _HintPosition = value;
+
+                OnHintPositionChanged(oldValue, value);
+            }
+        }
+        private HintPosition _HintPosition;
+        public event EventHandler<EventArgs> HintPositionChanged;
+        public virtual void OnHintPositionChanged(HintPosition oValue, HintPosition nValue)
+        {
+            HintPositionChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region IsControl
+
+        public bool IsControl
+        {
+            get => _IsControl;
+            set
+            {
+                if (_IsControl == value) return;
+
+                bool oldValue = _IsControl;
+                _IsControl = value;
+
+                OnIsControlChanged(oldValue, value);
+            }
+        }
+        private bool _IsControl;
+        public event EventHandler<EventArgs> IsControlChanged;
+        public virtual void OnIsControlChanged(bool oValue, bool nValue)
+        {
+            if (!IsControl)
+            {
+                if (FocusControl == this)
+                    FocusControl = null;
+
+                if (MouseControl == this)
+                    MouseControl = null;
+            }
+
+            IsControlChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region HideWhenClipped
+
+        public bool HideWhenClipped
+        {
+            get => _HideWhenClipped;
+            set
+            {
+                if (_HideWhenClipped == value) return;
+
+                bool oldValue = _HideWhenClipped;
+                _HideWhenClipped = value;
+
+                OnHideWhenClippedChanged(oldValue, value);
+            }
+        }
+        private bool _HideWhenClipped;
+        public event EventHandler<EventArgs> HideWhenClippedChanged;
+        public virtual void OnHideWhenClippedChanged(bool oValue, bool nValue)
+        {
+            HideWhenClippedChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region Location
+
+        public Point Location
+        {
+            get => _Location;
+            set
+            {
+                if (_Location == value) return;
+
+                Point oldValue = _Location;
+                _Location = value;
+
+                OnLocationChanged(oldValue, value);
+            }
+        }
+        private Point _Location;
+        public event EventHandler<EventArgs> LocationChanged;
+        public virtual void OnLocationChanged(Point oValue, Point nValue)
+        {
+            UpdateDisplayArea();
+            Parent?.InvalidateChildCache();
+            LocationChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region Modal
+
+        public bool Modal
+        {
+            get => _Modal;
+            set
+            {
+                if (_Modal == value) return;
+
+                bool oldValue = _Modal;
+                _Modal = value;
+
+                OnModalChanged(oldValue, value);
+            }
+        }
+        private bool _Modal;
+        public event EventHandler<EventArgs> ModalChanged;
+        public virtual void OnModalChanged(bool oValue, bool nValue)
+        {
+            ModalChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region Movable
+
+        public bool Movable
+        {
+            get => _Movable;
+            set
+            {
+                if (_Movable == value) return;
+
+                bool oldValue = _Movable;
+                _Movable = value;
+
+                OnMovableChanged(oldValue, value);
+            }
+        }
+        private bool _Movable;
+        public event EventHandler<EventArgs> MovableChanged;
+        public virtual void OnMovableChanged(bool oValue, bool nValue)
+        {
+            MovableChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region IgnoreMoveBounds
+
+        public bool IgnoreMoveBounds
+        {
+            get => _IgnoreMoveBounds;
+            set
+            {
+                if (_IgnoreMoveBounds == value) return;
+
+                bool oldValue = _IgnoreMoveBounds;
+                _IgnoreMoveBounds = value;
+
+                OnIgnoreMoveBoundsChanged(oldValue, value);
+            }
+        }
+        private bool _IgnoreMoveBounds;
+        public event EventHandler<EventArgs> IgnoreMoveBoundsChanged;
+        public virtual void OnIgnoreMoveBoundsChanged(bool oValue, bool nValue)
+        {
+            IgnoreMoveBoundsChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region Clip
+
+        public bool Clip
+        {
+            get => _Clip;
+            set
+            {
+                if (_Clip == value) return;
+
+                bool oldValue = _Clip;
+                _Clip = value;
+
+                OnClipChanged(oldValue, value);
+            }
+        }
+        private bool _Clip;
+        public event EventHandler<EventArgs> ClipChanged;
+        public virtual void OnClipChanged(bool oValue, bool nValue)
+        {
+            ClipChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region Opacity
+
+        public float Opacity
+        {
+            get => _Opacity;
+            set
+            {
+                if (_Opacity == value) return;
+
+                float oldValue = _Opacity;
+                _Opacity = value;
+
+                OnOpacityChanged(oldValue, value);
+            }
+        }
+        private float _Opacity;
+        public event EventHandler<EventArgs> OpacityChanged;
+        public virtual void OnOpacityChanged(float oValue, float nValue)
+        {
+            InvalidateParentChildCache();
+            OpacityChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region Parent
+
+        public DXControl Parent
+        {
+            get => _Parent;
+            set
+            {
+                if (_Parent == value) return;
+
+                DXControl oldValue = _Parent;
+                _Parent = value;
+
+                OnParentChanged(oldValue, value);
+            }
+        }
+        private DXControl _Parent;
+        public event EventHandler<EventArgs> ParentChanged;
+        public virtual void OnParentChanged(DXControl oValue, DXControl nValue)
+        {
+            oValue?.Controls.Remove(this);
+            Parent?.Controls.Add(this);
+
+            CheckIsVisible();
+            CheckIsEnabled();
+
+            UpdateDisplayArea();
+            oValue?.InvalidateChildCache();
+            nValue?.InvalidateChildCache();
+
+            ParentChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region PassThrough
+
+        public bool PassThrough
+        {
+            get => _PassThrough;
+            set
+            {
+                if (_PassThrough == value) return;
+
+                bool oldValue = _PassThrough;
+                _PassThrough = value;
+
+                OnPassThroughChanged(oldValue, value);
+            }
+        }
+        private bool _PassThrough;
+        public event EventHandler<EventArgs> PassThroughChanged;
+        public virtual void OnPassThroughChanged(bool oValue, bool nValue)
+        {
+            PassThroughChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region Size
+
+        public virtual Size Size
+        {
+            get => _Size;
+            set
+            {
+                if (_Size == value) return;
+
+                Size oldValue = _Size;
+                _Size = value;
+
+                OnSizeChanged(oldValue, value);
+            }
+        }
+        private Size _Size;
+        public event EventHandler<EventArgs> SizeChanged;
+        public virtual void OnSizeChanged(Size oValue, Size nValue)
+        {
+            UpdateDisplayArea();
+            UpdateBorderInformation();
+            TextureValid = false;
+            InvalidateChildCache();
+            Parent?.InvalidateChildCache();
+
+            SizeChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region Sort
+
+        public bool Sort
+        {
+            get => _Sort;
+            set
+            {
+                if (_Sort == value) return;
+
+                bool oldValue = _Sort;
+                _Sort = value;
+
+                OnSortChanged(oldValue, value);
+            }
+        }
+        private bool _Sort;
+        public event EventHandler<EventArgs> SortChanged;
+        public virtual void OnSortChanged(bool oValue, bool nValue)
+        {
+            BringToFront();
+            SortChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region Sound
+
+        public SoundIndex Sound
+        {
+            get => _Sound;
+            set
+            {
+                if (_Sound == value) return;
+
+                SoundIndex oldValue = _Sound;
+                _Sound = value;
+
+                OnSoundChanged(oldValue, value);
+            }
+        }
+        private SoundIndex _Sound;
+        public event EventHandler<EventArgs> SoundChanged;
+        public virtual void OnSoundChanged(SoundIndex oValue, SoundIndex nValue)
+        {
+            SoundChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region Tag
+
+        public object Tag
+        {
+            get => _Tag;
+            set
+            {
+                if (_Tag == value) return;
+
+                object oldValue = _Tag;
+                _Tag = value;
+
+                OnTagChanged(oldValue, value);
+            }
+        }
+        private object _Tag;
+        public event EventHandler<EventArgs> TagChanged;
+        public virtual void OnTagChanged(object oValue, object nValue)
+        {
+            TagChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region Text
+
+        public string Text
+        {
+            get => _Text;
+            set
+            {
+                if (_Text == value) return;
+
+                string oldValue = _Text;
+                _Text = value;
+
+                OnTextChanged(oldValue, value);
+            }
+        }
+        private string _Text;
+        public event EventHandler<EventArgs> TextChanged;
+        public virtual void OnTextChanged(string oValue, string nValue)
+        {
+            InvalidateParentChildCache();
+            TextChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region Visible
+
+        public bool Visible
+        {
+            get => _Visible;
+            set
+            {
+                if (_Visible == value) return;
+
+                bool oldValue = _Visible;
+                _Visible = value;
+
+                OnVisibleChanged(oldValue, value);
+            }
+        }
+        private bool _Visible;
+        public event EventHandler<EventArgs> VisibleChanged;
+        public virtual void OnVisibleChanged(bool oValue, bool nValue)
+        {
+            CheckIsVisible();
+            Parent?.InvalidateChildCache();
+
+            VisibleChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region IsEnabled
+
+        public bool IsEnabled
+        {
+            get => _IsEnabled;
+            set
+            {
+                if (_IsEnabled == value) return;
+
+                bool oldValue = _IsEnabled;
+                _IsEnabled = value;
+
+                OnIsEnabledChanged(oldValue, value);
+            }
+        }
+        private bool _IsEnabled;
+        public event EventHandler<EventArgs> IsEnabledChanged;
+        public virtual void OnIsEnabledChanged(bool oValue, bool nValue)
+        {
+            foreach (DXControl control in Controls)
+                control.CheckIsEnabled();
+
+            IsEnabledChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region IsVisible
+
+        public bool IsVisible
+        {
+            get => _IsVisible;
+            set
+            {
+                if (_IsVisible == value) return;
+
+                bool oldValue = _IsVisible;
+                _IsVisible = value;
+
+                OnIsVisibleChanged(oldValue, value);
+            }
+        }
+        private bool _IsVisible;
+        public event EventHandler<EventArgs> IsVisibleChanged;
+        public virtual void OnIsVisibleChanged(bool oValue, bool nValue)
+        {
+            if (!IsVisible)
+            {
+                ReleaseChildRenderTarget();
+                if (FocusControl == this)
+                    FocusControl = null;
+
+                if (MouseControl == this)
+                    MouseControl = null;
+            }
+
+            List<DXControl> checks = new List<DXControl>(Controls);
+
+            foreach (DXControl control in checks)
+                control.CheckIsVisible();
+
+            Parent?.InvalidateChildCache();
+            IsVisibleChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region IsMoving
+
+        public bool IsMoving
+        {
+            get => _IsMoving;
+            set
+            {
+                if (_IsMoving == value) return;
+
+                bool oldValue = _IsMoving;
+                _IsMoving = value;
+
+                OnIsMovingChanged(oldValue, value);
+            }
+        }
+        private bool _IsMoving;
+        public event EventHandler<EventArgs> IsMovingChanged;
+        public virtual void OnIsMovingChanged(bool oValue, bool nValue)
+        {
+            if (IsMoving)
+                CEnvir.Target.SuspendLayout();
+            else
+                CEnvir.Target.ResumeLayout();
+
+            UpdateClipAreaTree();
+            IsMovingChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region IsResizing
+
+        public bool IsResizing
+        {
+            get => _IsResizing;
+            set
+            {
+                if (_IsResizing == value) return;
+
+                bool oldValue = _IsResizing;
+                _IsResizing = value;
+
+                OnIsResizingChanged(oldValue, value);
+            }
+        }
+        private bool _IsResizing;
+        public event EventHandler<EventArgs> IsResizingChanged;
+        public virtual void OnIsResizingChanged(bool oValue, bool nValue)
+        {
+            IsResizingChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        public const int ResizeBuffer = 9;
+        protected internal Point MovePoint;
+        private Point ResizePoint;
+        public bool ResizeLeft, ResizeRight, ResizeUp, ResizeDown;
+
+        #region Texture
+        private RenderTargetResource _controlRenderTarget;
+        public bool TextureValid { get; set; }
+        public RenderTexture ControlTexture { get; set; }
+        public Size TextureSize { get; set; }
+        public RenderSurface ControlSurface { get; private set; }
+        public DateTime ExpireTime { get; protected set; }
+
+        public void RefreshTextureExpiry()
+        {
+            ExpireTime = CEnvir.Now + Config.CacheDuration;
+        }
+
+        protected virtual void CreateTexture()
+        {
+            if (!_controlRenderTarget.IsValid || !ControlTexture.IsValid || DisplayArea.Size != TextureSize)
+            {
+                DisposeTexture();
+                TextureSize = DisplayArea.Size;
+                _controlRenderTarget = RenderingPipelineManager.CreateRenderTarget(TextureSize);
+
+                ControlTexture = _controlRenderTarget.Texture;
+                ControlSurface = _controlRenderTarget.Surface;
+                RenderingPipelineManager.RegisterControlCache(this);
+            }
+
+            if (!ControlSurface.IsValid)
+                throw new InvalidOperationException("Control surface is not available.");
+
+            RenderSurface previous = RenderingPipelineManager.GetCurrentSurface();
+            try
+            {
+                RenderingPipelineManager.SetSurface(ControlSurface);
+                RenderingPipelineManager.Clear(RenderClearFlags.Target, BackColour, 0, 0);
+                OnClearTexture();
+            }
+            finally { RenderingPipelineManager.SetSurface(previous); }
+            TextureValid = true;
+
+            ExpireTime = CEnvir.Now + Config.CacheDuration;
+        }
+        protected virtual void OnClearTexture()
+        {
+        }
+        public virtual void DisposeTexture()
+        {
+            if (_controlRenderTarget.IsValid)
+            {
+                RenderingPipelineManager.ReleaseRenderTarget(_controlRenderTarget);
+                _controlRenderTarget = default;
+            }
+
+            ControlTexture = default;
+            ControlSurface = default;
+
+            TextureSize = Size.Empty;
+            ExpireTime = DateTime.MinValue;
+            TextureValid = false;
+
+            RenderingPipelineManager.UnregisterControlCache(this);
+            ReleaseChildRenderTarget();
+        }
+        #endregion
+
+        public event EventHandler<EventArgs> MouseEnter, MouseLeave, Focus, LostFocus;
+        public event EventHandler<MouseEventArgs> MouseDown, MouseUp, MouseMove, Moving, MouseClick, MouseDoubleClick, MouseWheel;
+        public event EventHandler<KeyEventArgs> KeyDown, KeyUp;
+        public event EventHandler<KeyPressEventArgs> KeyPress;
+
+        public Action ProcessAction;
+
+        #endregion
+
+        public DXControl()
+        {
+            BackColour = Color.Empty;
+            Enabled = true;
+            IsControl = true;
+            Opacity = 1F;
+            BorderSize = 1;
+            Visible = true;
+            ForeColour = Color.White;
+            CanResizeHeight = true;
+            CanResizeWidth = true;
+        }
+
+        #region Methods
+        public virtual void Process()
+        {
+            ProcessAction?.Invoke();
+
+            foreach (DXControl control in Controls)
+            {
+                if (!control.IsVisible) continue;
+
+                control.Process();
+            }
+        }
+
+
+        protected internal virtual void UpdateBorderInformation()
+        {
+            BorderInformation = null;
+            if (!Border || DisplayArea.Width == 0 || DisplayArea.Height == 0)
+            {
+                return;
+            }
+            /*
+BorderInformation = new[]
+{
+   new LinePoint(DisplayArea.Left - 1, DisplayArea.Top - 1),
+   new LinePoint(DisplayArea.Right, DisplayArea.Top - 1),
+   new LinePoint(DisplayArea.Right, DisplayArea.Bottom),
+   new LinePoint(DisplayArea.Left - 1, DisplayArea.Bottom),
+   new LinePoint(DisplayArea.Left - 1, DisplayArea.Top - 1)
+};
+*/
+
+            BorderInformation = new[]
+            {
+                new LinePoint(0, 0),
+                new LinePoint(Size.Width + 1, 0),
+                new LinePoint(Size.Width + 1, Size.Height + 1),
+                new LinePoint(0, Size.Height + 1),
+                new LinePoint(0, 0)
+            };
+        }
+        protected internal virtual void CheckIsVisible()
+        {
+            IsVisible = Visible && Parent != null && Parent.IsVisible;
+        }
+        protected internal virtual void CheckIsEnabled()
+        {
+            IsEnabled = Enabled && (Parent == null || Parent.IsEnabled);
+        }
+        protected internal virtual void UpdateDisplayArea()
+        {
+            Rectangle area = new Rectangle(Location, Size);
+
+            if (Parent != null)
+                area.Offset(Parent.DisplayArea.Location);
+
+            DisplayArea = area;
+        }
+
+        protected internal void UpdateClipAreaTree()
+        {
+            UpdateClipArea();
+
+            foreach (DXControl control in Controls)
+                control.UpdateClipAreaTree();
+        }
+
+        private void UpdateClipArea()
+        {
+            Rectangle sceneArea = ActiveScene?.DisplayArea ?? DisplayArea;
+            if (UsesUIScale && ActiveScene is GameScene game)
+                sceneArea = new Rectangle(ActiveScene.Location, game.UISize);
+
+            if (Parent == null || Parent == ActiveScene || Parent.IsMoving && Parent.AllowDragOut)
+            {
+                ClipArea = Rectangle.Intersect(sceneArea, DisplayArea);
+                return;
+            }
+
+            ClipArea = Rectangle.Intersect(Parent.ClipArea, DisplayArea);
+        }
+        public virtual void ResolutionChanged()
+        {
+
+        }
+
+        public virtual void OnSorted()
+        {
+
+        }
+        public void BringToFront()
+        {
+            if (Parent == null) return;
+
+            Parent.BringToFront();
+
+            if (!Sort || Parent.Controls[Parent.Controls.Count - 1] == this) return;
+
+            Parent.Controls.Remove(this);
+            Parent.Controls.Add(this);
+
+            OnSorted();
+        }
+        public void SendToBack()
+        {
+            if (Parent == null) return;
+
+            Parent.SendToBack();
+
+            if (!Sort || Parent.Controls[0] == this) return;
+
+            Parent.Controls.Remove(this);
+            Parent.Controls.Insert(0, this);
+        }
+        public void InvokeMouseClick()
+        {
+            if (!IsEnabled) return;
+
+            MouseClick?.Invoke(this, null);
+        }
+
+        public virtual bool IsMouseOver(Point p)
+        {
+            if (!IsVisible || !IsControl) return false;
+
+            if (!DisplayArea.Contains(p)) return Modal;
+
+            if (!PassThrough) return true;
+
+            if (AllowResize)
+            {
+                bool left = false, right = false, top = false, bottom = false;
+                if (CanResizeWidth)
+                {
+                    if (p.X - DisplayArea.Left < ResizeBuffer)
+                        left = true;
+                    else if (DisplayArea.Right - p.X < ResizeBuffer)
+                        right = true;
+                }
+
+                if (CanResizeHeight)
+                {
+                    if (p.Y - DisplayArea.Top < ResizeBuffer)
+                        top = true;
+                    else if (DisplayArea.Bottom - p.Y < ResizeBuffer)
+                        bottom = true;
+                }
+
+                if (left || right || top || bottom) return true;
+            }
+
+            for (int i = Controls.Count - 1; i >= 0; i--)
+                if (Controls[i].IsMouseOver(p))
+                    return true;
+
+            return false;
+        }
+
+        public virtual void OnMouseEnter()
+        {
+            if (!IsEnabled) return;
+
+            MouseEnter?.Invoke(this, EventArgs.Empty);
+        }
+        public virtual void OnMouseLeave()
+        {
+            if (!IsEnabled) return;
+
+            MouseLeave?.Invoke(this, EventArgs.Empty);
+        }
+
+        public virtual void OnMouseMove(MouseEventArgs e)
+        {
+            if (!IsEnabled)
+            {
+                MouseControl = this;
+                return;
+            }
+
+            bool left = false, right = false, top = false, bottom = false;
+            if (IsResizing)
+            {
+                Point tempPoint = new Point(e.Location.X - ResizePoint.X, e.Location.Y - ResizePoint.Y);
+
+                if (Parent == null || tempPoint.IsEmpty) return;
+
+                Point nLocation = Location;
+                Size nSize = Size;
+
+
+                if (ResizeUp)
+                {
+                    nLocation = new Point(nLocation.X, nLocation.Y + tempPoint.Y);
+
+                    if (DisplayArea.Y + tempPoint.Y < 0) nLocation.Y += DisplayArea.Y - tempPoint.Y;
+
+                    nSize = new Size(nSize.Width, nSize.Height - (nLocation.Y - Location.Y));
+
+                    if (nSize.Height < ResizeBuffer * 2)
+                    {
+                        nLocation.Y = Location.Y + Size.Height - ResizeBuffer * 2;
+                        nSize.Height = ResizeBuffer * 2;
+                    }
+                    ResizePoint = new Point(ResizePoint.X, ResizePoint.Y + (nLocation.Y - Location.Y));
+                }
+                else if (ResizeDown)
+                {
+                    nSize = new Size(nSize.Width, nSize.Height + tempPoint.Y);
+
+                    if (nSize.Height + nLocation.Y >= ActiveLayoutSize.Height)
+                        nSize.Height = ActiveLayoutSize.Height - nLocation.Y;
+
+                    if (nSize.Height < ResizeBuffer * 2)
+                        nSize.Height = ResizeBuffer * 2;
+
+                    ResizePoint = new Point(ResizePoint.X, ResizePoint.Y + (nSize.Height - Size.Height));
+                }
+
+                if (ResizeLeft)
+                {
+                    nLocation = new Point(nLocation.X + tempPoint.X, nLocation.Y);
+
+                    if (DisplayArea.X + tempPoint.X < 0) nLocation.X += DisplayArea.X - tempPoint.X;
+
+
+                    nSize = new Size(nSize.Width - (nLocation.X - Location.X), nSize.Height);
+
+                    if (nSize.Width < ResizeBuffer * 2)
+                    {
+                        nLocation.X = Location.X + Size.Width - ResizeBuffer * 2;
+                        nSize.Width = ResizeBuffer * 2;
+                    }
+
+                    ResizePoint = new Point(ResizePoint.X + (nLocation.X - Location.X), ResizePoint.Y);
+                }
+                else if (ResizeRight)
+                {
+                    nSize = new Size(nSize.Width + tempPoint.X, nSize.Height);
+
+                    if (nSize.Width + nLocation.X >= ActiveLayoutSize.Width)
+                        nSize.Width = ActiveLayoutSize.Width - nLocation.X;
+
+                    if (nSize.Width < ResizeBuffer * 2)
+                        nSize.Width = ResizeBuffer * 2;
+                    ResizePoint = new Point(ResizePoint.X + (nSize.Width - Size.Width), ResizePoint.Y);
+                }
+
+                Size oldSize = nSize;
+                nSize = GetAcceptableResize(oldSize);
+
+                if (ResizeUp)
+                {
+                    nLocation = new Point(nLocation.X, nLocation.Y - nSize.Height + oldSize.Height);
+                    ResizePoint = new Point(ResizePoint.X, ResizePoint.Y - nSize.Height + oldSize.Height);
+                }
+                else if (ResizeDown)
+                {
+                    ResizePoint = new Point(ResizePoint.X, ResizePoint.Y + nSize.Height - oldSize.Height);
+                }
+
+                if (ResizeLeft)
+                {
+                    nLocation = new Point(nLocation.X - nSize.Width + oldSize.Width, nLocation.Y);
+                    ResizePoint = new Point(ResizePoint.X - nSize.Width + oldSize.Width, ResizePoint.Y);
+                }
+                else if (ResizeRight)
+                {
+                    ResizePoint = new Point(ResizePoint.X + nSize.Width - oldSize.Width, ResizePoint.Y);
+                }
+                Location = nLocation;
+                Size = nSize;
+
+
+            }
+            else if (AllowResize)
+            {
+                if (CanResizeWidth)
+                {
+                    if (e.Location.X - DisplayArea.Left < ResizeBuffer)
+                        left = true;
+                    else if (DisplayArea.Right - e.Location.X < ResizeBuffer)
+                        right = true;
+                }
+
+                if (CanResizeHeight)
+                {
+                    if (e.Location.Y - DisplayArea.Top < ResizeBuffer)
+                        top = true;
+                    else if (DisplayArea.Bottom - e.Location.Y < ResizeBuffer)
+                        bottom = true;
+                }
+
+                if (left)
+                {
+                    if (top)
+                        Cursor.Current = Cursors.SizeNWSE;
+                    else if (bottom)
+                        Cursor.Current = Cursors.SizeNESW;
+                    else
+                        Cursor.Current = Cursors.SizeWE;
+                }
+                else if (right)
+                {
+                    if (top)
+                        Cursor.Current = Cursors.SizeNESW;
+                    else if (bottom)
+                        Cursor.Current = Cursors.SizeNWSE;
+                    else
+                        Cursor.Current = Cursors.SizeWE;
+                }
+                else if (top || bottom)
+                    Cursor.Current = Cursors.SizeNS;
+
+            }
+
+            if (IsMoving)
+            {
+                Point tempPoint = new Point(e.Location.X - MovePoint.X, e.Location.Y - MovePoint.Y);
+
+                if (!AllowDragOut && !IgnoreMoveBounds)
+                {
+                    if (Parent == null) return;
+
+                    Size parentBounds = Parent == ActiveScene ? ActiveLayoutSize : Parent.DisplayArea.Size;
+                    if (tempPoint.X + DisplayArea.Width > parentBounds.Width) tempPoint.X = parentBounds.Width - DisplayArea.Width;
+                    if (tempPoint.Y + DisplayArea.Height > parentBounds.Height) tempPoint.Y = parentBounds.Height - DisplayArea.Height;
+
+                    if (tempPoint.X < 0) tempPoint.X = 0;
+                    if (tempPoint.Y < 0) tempPoint.Y = 0;
+                }
+
+                if (Clip && IgnoreMoveBounds)
+                {
+                    if (Size.Width > Parent.Size.Width)
+                    {
+                        if (tempPoint.X > 0) tempPoint.X = 0;
+                        else if (tempPoint.X + DisplayArea.Width < Parent.DisplayArea.Width) tempPoint.X = Parent.DisplayArea.Width - DisplayArea.Width;
+                    }
+                    else
+                    {
+                        tempPoint.X = Location.X;
+                    }
+
+                    if (Size.Height > Parent.Size.Height)
+                    {
+                        if (tempPoint.Y > 0) tempPoint.Y = 0;
+                        else if (tempPoint.Y + DisplayArea.Height < Parent.DisplayArea.Height) tempPoint.Y = Parent.DisplayArea.Height - DisplayArea.Height;
+                    }
+                    else
+                    {
+                        tempPoint.Y = Location.Y;
+                    }
+                }
+
+                if (Tag is Size)
+                {
+                    Size clipSize = (Size)Tag;
+                    Point change = new Point(tempPoint.X - Location.X, tempPoint.Y - Location.Y);
+
+                    if (DisplayArea.X + change.X < ActiveScene.Location.X) tempPoint.X -= DisplayArea.X + change.X - ActiveScene.Location.X;
+                    if (DisplayArea.Y + change.Y < ActiveScene.Location.Y) tempPoint.Y -= DisplayArea.Y + change.Y - ActiveScene.Location.Y;
+
+                    if (DisplayArea.X + clipSize.Width + change.X - ActiveScene.Location.X >= ActiveLayoutSize.Width) tempPoint.X -= DisplayArea.X + clipSize.Width + change.X - ActiveScene.Location.X - ActiveLayoutSize.Width;
+                    if (DisplayArea.Y + clipSize.Height + change.Y - ActiveScene.Location.Y >= ActiveLayoutSize.Height) tempPoint.Y -= DisplayArea.Y + clipSize.Height + change.Y - ActiveScene.Location.Y - ActiveLayoutSize.Height;
+                }
+
+                Location = tempPoint;
+                Moving?.Invoke(this, e);
+            }
+
+
+            if (!IsMoving && !IsResizing && !left && !right && !top && !bottom)
+                for (int i = Controls.Count - 1; i >= 0; i--)
+                    if (Controls[i].IsMouseOver(e.Location))
+                    {
+                        Controls[i].OnMouseMove(e);
+                        return;
+                    }
+
+            MouseControl = this;
+
+            MouseMove?.Invoke(this, e);
+        }
+        public virtual Size GetAcceptableResize(Size size)
+        {
+            return size;
+        }
+        public virtual void OnMouseDown(MouseEventArgs e)
+        {
+            if (!IsEnabled) return;
+
+            FocusControl = this;
+
+            BringToFront();
+
+            if (AllowResize)
+            {
+
+                if (CanResizeWidth)
+                {
+                    if (e.Location.X - DisplayArea.Left < ResizeBuffer)
+                        ResizeLeft = true;
+                    else if (DisplayArea.Right - e.Location.X < ResizeBuffer)
+                        ResizeRight = true;
+                }
+
+                if (CanResizeHeight)
+                {
+                    if (e.Location.Y - DisplayArea.Top < ResizeBuffer)
+                        ResizeUp = true;
+                    else if (DisplayArea.Bottom - e.Location.Y < ResizeBuffer)
+                        ResizeDown = true;
+                }
+
+
+                IsResizing = ResizeLeft || ResizeRight || ResizeUp || ResizeDown;
+                ResizePoint = new Point(e.X, e.Y);
+
+
+                if (ResizeLeft)
+                {
+                    if (ResizeUp)
+                        Cursor.Current = Cursors.SizeNWSE;
+                    else if (ResizeDown)
+                        Cursor.Current = Cursors.SizeNESW;
+                    else
+                        Cursor.Current = Cursors.SizeWE;
+                }
+                else if (ResizeRight)
+                {
+                    if (ResizeUp)
+                        Cursor.Current = Cursors.SizeNESW;
+                    else if (ResizeDown)
+                        Cursor.Current = Cursors.SizeNWSE;
+                    else
+                        Cursor.Current = Cursors.SizeWE;
+                }
+                else if (ResizeUp || ResizeDown)
+                    Cursor.Current = Cursors.SizeNS;
+            }
+
+            if (!IsResizing && Movable && e.Button.HasFlag(MouseButtons.Left) && (!Modal || DisplayArea.Contains(e.Location)))
+            {
+                IsMoving = true;
+                MovePoint = new Point(e.X - Location.X, e.Y - Location.Y);
+                Parent.Controls.Remove(this);
+                Parent.Controls.Add(this);
+            }
+
+            MouseDown?.Invoke(this, e);
+        }
+        public virtual void OnMouseUp(MouseEventArgs e)
+        {
+            if (!IsEnabled) return;
+
+            FocusControl = null;
+
+            MouseUp?.Invoke(this, e);
+        }
+        public virtual void OnMouseClick(MouseEventArgs e)
+        {
+            if (!IsEnabled) return;
+
+            if (Sound != SoundIndex.None)
+                DXSoundManager.Play(Sound);
+
+            MouseClick?.Invoke(this, e);
+        }
+        public virtual void OnMouseDoubleClick(MouseEventArgs e)
+        {
+            if (!IsEnabled) return;
+
+
+            if (MouseDoubleClick != null)
+            {
+                if (Sound != SoundIndex.None)
+                    DXSoundManager.Play(Sound);
+
+                MouseDoubleClick?.Invoke(this, e);
+            }
+            else
+                OnMouseClick(e);
+        }
+        public virtual void OnMouseWheel(MouseEventArgs e)
+        {
+            if (!IsEnabled) return;
+
+            HandleMouseWheel(e);
+        }
+
+        protected void HandleMouseWheel(MouseEventArgs e)
+        {
+            MouseWheel?.Invoke(this, e);
+        }
+
+        public virtual void OnFocus()
+        {
+            IsMoving = false;
+            ResizePoint = Point.Empty;
+            MovePoint = Point.Empty;
+
+            Focus?.Invoke(this, EventArgs.Empty);
+        }
+        public virtual void OnLostFocus()
+        {
+            if (IsMoving)
+            {
+                IsMoving = false;
+                MovePoint = Point.Empty;
+            }
+
+            if (IsResizing)
+            {
+                IsResizing = false;
+                ResizeLeft = false;
+                ResizeRight = false;
+                ResizeUp = false;
+                ResizeDown = false;
+                ResizePoint = Point.Empty;
+            }
+
+            LostFocus?.Invoke(this, EventArgs.Empty);
+        }
+
+        public virtual void OnKeyPress(KeyPressEventArgs e)
+        {
+            if (!IsEnabled) return;
+
+            if (Controls != null)
+                for (int i = Controls.Count - 1; i >= 0; i--)
+                {
+                    if (!Controls[i].IsVisible) continue;
+
+                    Controls[i].OnKeyPress(e);
+                    if (e.Handled || Modal) return;
+                }
+
+            KeyPress?.Invoke(this, e);
+        }
+        public virtual void OnKeyDown(KeyEventArgs e)
+        {
+            if (!IsEnabled) return;
+
+            if (Controls != null)
+                for (int i = Controls.Count - 1; i >= 0; i--)
+                {
+                    if (!Controls[i].IsVisible) continue;
+
+                    Controls[i].OnKeyDown(e);
+                    if (e.Handled || Modal) return;
+                }
+
+            KeyDown?.Invoke(this, e);
+        }
+        public virtual void OnKeyUp(KeyEventArgs e)
+        {
+            if (!IsEnabled) return;
+
+            if (Controls != null)
+                for (int i = Controls.Count - 1; i >= 0; i--)
+                {
+                    if (!Controls[i].IsVisible) continue;
+
+                    Controls[i].OnKeyUp(e);
+                    if (e.Handled || Modal) return;
+                }
+
+            KeyUp?.Invoke(this, e);
+        }
+
+        #region Drawing
+        private EventHandler<EventArgs> _beforeDraw, _afterDraw, _beforeChildrenDraw;
+        public event EventHandler<EventArgs> BeforeDraw
+        {
+            add { _beforeDraw += value; Parent?.InvalidateChildCache(); }
+            remove { _beforeDraw -= value; Parent?.InvalidateChildCache(); }
+        }
+        public event EventHandler<EventArgs> AfterDraw
+        {
+            add { _afterDraw += value; Parent?.InvalidateChildCache(); }
+            remove { _afterDraw -= value; Parent?.InvalidateChildCache(); }
+        }
+        public event EventHandler<EventArgs> BeforeChildrenDraw
+        {
+            add { _beforeChildrenDraw += value; Parent?.InvalidateChildCache(); }
+            remove { _beforeChildrenDraw -= value; Parent?.InvalidateChildCache(); }
+        }
+        public virtual void Draw()
+        {
+            RenderDiagnostics.Count(RenderDiagnostics.Counter.ControlsVisited);
+            if (!IsVisible || DisplayArea.Width <= 0 || DisplayArea.Height <= 0) return;
+            if (HideWhenClipped && !ClipArea.Contains(DisplayArea)) return;
+
+            RenderDiagnostics.Count(RenderDiagnostics.Counter.ControlsUncached);
+            OnBeforeDraw();
+            DrawControl();
+            OnBeforeChildrenDraw();
+            DrawChildControls();
+            DrawBorder();
+            OnAfterDraw();
+        }
+
+        protected virtual void OnBeforeDraw()
+        {
+            _beforeDraw?.Invoke(this, EventArgs.Empty);
+        }
+        protected virtual void OnBeforeChildrenDraw()
+        {
+            _beforeChildrenDraw?.Invoke(this, EventArgs.Empty);
+        }
+        protected virtual void OnAfterDraw()
+        {
+            _afterDraw?.Invoke(this, EventArgs.Empty);
+        }
+        protected virtual bool UseSpriteBorders => true;
+
+        protected virtual void DrawBorder()
+        {
+            if (!Border || BorderInformation == null)
+            {
+                return;
+            }
+
+            if (RenderingPipelineManager.GetLineWidth() != BorderSize)
+            {
+                RenderingPipelineManager.SetLineWidth(BorderSize);
+            }
+
+            RectangleF area = RenderingPipelineManager.GetPixelAlignedBorderBounds(DisplayArea);
+            Rectangle clipArea = GetBorderClipArea();
+            SizeF pixelSize = RenderingPipelineManager.GetBackBufferPixelSize();
+            float right = area.Right;
+            float bottom = area.Bottom;
+
+            DrawClippedHorizontalLine(area.Left, right, area.Top, clipArea, pixelSize.Width);
+            DrawClippedVerticalLine(right, area.Top, bottom, clipArea, pixelSize.Height);
+            DrawClippedHorizontalLine(area.Left, right, bottom, clipArea, pixelSize.Width);
+            DrawClippedVerticalLine(area.Left, area.Top, bottom, clipArea, pixelSize.Height);
+        }
+
+        protected Rectangle GetBorderClipArea()
+        {
+            Rectangle sceneArea = ActiveScene?.DisplayArea ?? DisplayArea;
+            if (UsesUIScale && ActiveScene is GameScene game)
+                sceneArea = new Rectangle(ActiveScene.Location, game.UISize);
+
+            if (Parent == null || Parent == ActiveScene || Parent.IsMoving && Parent.AllowDragOut)
+                return sceneArea;
+
+            return Parent.ClipArea;
+        }
+
+        protected void DrawClippedHorizontalLine(float left, float right, float y, Rectangle clipArea)
+        {
+            DrawClippedHorizontalLine(left, right, y, clipArea, RenderingPipelineManager.GetBackBufferPixelSize().Width);
+        }
+
+        protected void DrawClippedHorizontalLine(float left, float right, float y, Rectangle clipArea, float pixelWidth)
+        {
+            if (y < clipArea.Top || y >= clipArea.Bottom) return;
+
+            float clippedLeft = Math.Max(left, clipArea.Left);
+            float clippedRight = Math.Min(right, clipArea.Right - pixelWidth);
+
+            if (clippedLeft > clippedRight) return;
+
+            if (UseSpriteBorders)
+            {
+                RenderingPipelineManager.DrawBorderStroke(new PointF(clippedLeft, y), new PointF(clippedRight, y), BorderSize, BorderColour);
+                return;
+            }
+            RenderingPipelineManager.DrawLine(new[]
+            {
+                new LinePoint(clippedLeft, y),
+                new LinePoint(clippedRight, y)
+            }, BorderColour);
+        }
+
+        protected void DrawClippedVerticalLine(float x, float top, float bottom, Rectangle clipArea)
+        {
+            DrawClippedVerticalLine(x, top, bottom, clipArea, RenderingPipelineManager.GetBackBufferPixelSize().Height);
+        }
+
+        protected void DrawClippedVerticalLine(float x, float top, float bottom, Rectangle clipArea, float pixelHeight)
+        {
+            if (x < clipArea.Left || x >= clipArea.Right) return;
+
+            float clippedTop = Math.Max(top, clipArea.Top);
+            float clippedBottom = Math.Min(bottom, clipArea.Bottom - pixelHeight);
+
+            if (clippedTop > clippedBottom) return;
+
+            if (UseSpriteBorders)
+            {
+                RenderingPipelineManager.DrawBorderStroke(new PointF(x, clippedTop), new PointF(x, clippedBottom), BorderSize, BorderColour);
+                return;
+            }
+            RenderingPipelineManager.DrawLine(new[]
+            {
+                new LinePoint(x, clippedTop),
+                new LinePoint(x, clippedBottom)
+            }, BorderColour);
+        }
+
+        protected virtual void DrawChildControls()
+        {
+            if (!RenderDiagnostics.ForceUncached && CacheChildControls && Controls.Count > 0 && RenderingPipelineManager.CanCacheUI)
+            {
+                DrawCachedChildControls();
+                return;
+            }
+
+            DrawChildControlsUncached();
+        }
+
+        protected void DrawChildControlsUncached()
+        {
+            foreach (DXControl control in Controls)
+            {
+                if (!control.IsVisible || control.DisplayArea.Width <= 0 || control.DisplayArea.Height <= 0)
+                    continue;
+
+                control.Draw();
+            }
+        }
+
+        protected virtual bool ShouldCacheChildControl(DXControl control)
+        {
+            if (!IsControlCacheSafe(control))
+                return false;
+
+            foreach (DXControl child in control.Controls)
+            {
+                if (!IsControlTreeCacheSafe(child))
+                    return false;
+            }
+
+            return true;
+        }
+
+        private bool IsControlTreeCacheSafe(DXControl control)
+        {
+            if (!IsControlCacheSafe(control))
+                return false;
+
+            foreach (DXControl child in control.Controls)
+            {
+                if (!IsControlTreeCacheSafe(child))
+                    return false;
+            }
+
+            return true;
+        }
+
+        private bool IsControlCacheSafe(DXControl control)
+        {
+            if (!control.CacheInParent)
+                return false;
+
+            if (control._beforeDraw != null || control._beforeChildrenDraw != null || control._afterDraw != null)
+                return false;
+
+            if (control is DXAnimatedControl)
+                return false;
+
+            if (control is DXImageControl imageControl && (imageControl.Blend || imageControl.ImageOpacity < 1F || imageControl.DropShadow || !imageControl.IntersectParent))
+                return false;
+
+            return true;
+        }
+
+        public void InvalidateChildCache()
+        {
+            RenderDiagnostics.Count(RenderDiagnostics.Counter.CacheInvalidations);
+            _childRenderSegmentsValid = false;
+
+            foreach (CachedChildControlSegment segment in _childRenderSegments)
+                segment.TextureValid = false;
+
+            Parent?.InvalidateChildCache();
+        }
+
+        protected void InvalidateParentChildCache()
+        {
+            if (CacheInParent)
+                Parent?.InvalidateChildCache();
+        }
+
+        private void DrawCachedChildControls()
+        {
+            EnsureChildRenderSegments();
+
+            for (int i = 0; i < _childRenderSegments.Count; i++)
+            {
+                CachedChildControlSegment segment = _childRenderSegments[i];
+
+                if (!segment.RenderTarget.Texture.IsValid)
+                {
+                    DrawChildControlsUncached();
+                    return;
+                }
+
+                if (!segment.TextureValid)
+                    RenderChildControlSegment(segment);
+            }
+
+            int segmentIndex = 0;
+            for (int i = 0; i < Controls.Count; i++)
+            {
+                if (segmentIndex < _childRenderSegments.Count && _childRenderSegments[segmentIndex].StartIndex == i)
+                {
+                    CachedChildControlSegment segment = _childRenderSegments[segmentIndex++];
+                    RenderDiagnostics.Count(RenderDiagnostics.Counter.CachePresented);
+                    RenderingPipelineManager.PresentUICache(segment.RenderTarget.Texture, segment.PhysicalBounds,
+                        RenderingPipelineManager.GetUIPhysicalBounds(Rectangle.Intersect(DisplayArea, ClipArea)));
+                    i = segment.EndIndex;
+                    continue;
+                }
+
+                DXControl control = Controls[i];
+
+                if (!control.IsVisible || control.DisplayArea.Width <= 0 || control.DisplayArea.Height <= 0)
+                    continue;
+
+                if (ShouldCacheChildControl(control))
+                    continue;
+
+                control.Draw();
+            }
+        }
+
+        private void EnsureChildRenderSegments()
+        {
+            Size backBufferSize = RenderingPipelineManager.GetBackBufferSize();
+
+            if (_childRenderSegmentsValid && AllChildRenderSegmentsValid(backBufferSize))
+                return;
+
+            List<CachedChildControlSegment> oldSegments = new List<CachedChildControlSegment>(_childRenderSegments);
+            _childRenderSegments.Clear();
+
+            int cachedStart = -1;
+            for (int i = 0; i < Controls.Count; i++)
+            {
+                DXControl control = Controls[i];
+
+                if (!control.IsVisible || control.DisplayArea.Width <= 0 || control.DisplayArea.Height <= 0)
+                    continue;
+
+                if (ShouldCacheChildControl(control))
+                {
+                    if (cachedStart == -1)
+                        cachedStart = i;
+
+                    continue;
+                }
+
+                AddChildRenderSegment(oldSegments, cachedStart, i - 1, backBufferSize);
+                cachedStart = -1;
+            }
+
+            AddChildRenderSegment(oldSegments, cachedStart, Controls.Count - 1, backBufferSize);
+
+            foreach (CachedChildControlSegment segment in oldSegments)
+            {
+                if (segment.RenderTarget.IsValid)
+                    RenderingPipelineManager.ReturnUICacheTarget(segment.RenderTarget);
+            }
+
+            _childRenderSegmentsValid = true;
+            _childRenderKey = CurrentCacheKey;
+        }
+
+        private UICacheKey CurrentCacheKey => RenderingPipelineManager.GetUICacheKey(CEnvir.Target?.WindowScale ?? 1F, CEnvir.Target?.TextRasterScale ?? 1F);
+
+        private bool AllChildRenderSegmentsValid(Size backBufferSize)
+        {
+            UICacheKey key = CurrentCacheKey;
+            if (_childRenderKey != key) return false;
+            foreach (CachedChildControlSegment segment in _childRenderSegments)
+            {
+                if (!segment.RenderTarget.IsValid || segment.Key != key)
+                    return false;
+            }
+
+            return true;
+        }
+
+        private void AddChildRenderSegment(List<CachedChildControlSegment> oldSegments, int startIndex, int endIndex, Size backBufferSize)
+        {
+            if (startIndex == -1 || endIndex < startIndex)
+                return;
+
+            Rectangle logicalBounds = Rectangle.Empty;
+            for (int i = startIndex; i <= endIndex; i++)
+                IncludeCacheBounds(Controls[i], ref logicalBounds);
+            logicalBounds = Rectangle.Intersect(logicalBounds, Rectangle.Intersect(DisplayArea, ClipArea));
+            Rectangle physicalBounds = RenderingPipelineManager.GetUIPhysicalBounds(logicalBounds);
+            if (physicalBounds.Width <= 0 || physicalBounds.Height <= 0) return;
+            Size targetSize = RenderingPipelineManager.GetUICacheTargetSize(physicalBounds.Size);
+            UICacheKey key = CurrentCacheKey;
+            CachedChildControlSegment segment = null;
+
+            for (int i = 0; i < oldSegments.Count; i++)
+            {
+                CachedChildControlSegment oldSegment = oldSegments[i];
+
+                if (oldSegment.RenderTarget.IsValid && oldSegment.RenderTargetSize == targetSize && oldSegment.Key.Session == key.Session && oldSegment.Key.Generation == key.Generation)
+                {
+                    segment = oldSegment;
+                    oldSegments.RemoveAt(i);
+                    break;
+                }
+            }
+
+            if (segment == null)
+            {
+                segment = new CachedChildControlSegment
+                {
+                    RenderTarget = RenderingPipelineManager.RentUICacheTarget(targetSize),
+                    RenderTargetSize = targetSize,
+                };
+            }
+
+            segment.PhysicalBounds = physicalBounds;
+            segment.Key = CurrentCacheKey;
+            segment.StartIndex = startIndex;
+            segment.EndIndex = endIndex;
+            segment.TextureValid = false;
+            _childRenderSegments.Add(segment);
+        }
+
+        private static void IncludeCacheBounds(DXControl control, ref Rectangle bounds)
+        {
+            if (!control.IsVisible) return;
+            Rectangle area = control.DisplayArea;
+            // Text alignment and border strokes can extend beyond their nominal edges.
+            SizeF pixel = RenderingPipelineManager.GetBackBufferPixelSize();
+            area.Inflate((int)Math.Ceiling((control.BorderSize + 2) * pixel.Width),
+                (int)Math.Ceiling((control.BorderSize + 2) * pixel.Height));
+            bounds = bounds.IsEmpty ? area : Rectangle.Union(bounds, area);
+            foreach (DXControl child in control.Controls) IncludeCacheBounds(child, ref bounds);
+        }
+
+        private void RenderChildControlSegment(CachedChildControlSegment segment)
+        {
+            RenderDiagnostics.Count(RenderDiagnostics.Counter.CacheRebuilt);
+            using (RenderingPipelineManager.PushUICacheTarget(segment.RenderTarget.Surface, segment.PhysicalBounds))
+            {
+                RenderingPipelineManager.Clear(RenderClearFlags.Target, Color.FromArgb(0), 0, 0);
+                for (int i = segment.StartIndex; i <= segment.EndIndex; i++)
+                {
+                    DXControl control = Controls[i];
+                    if (!control.IsVisible || control.DisplayArea.Width <= 0 || control.DisplayArea.Height <= 0)
+                        continue;
+                    if (ShouldCacheChildControl(control)) control.Draw();
+                }
+            }
+            segment.TextureValid = true;
+        }
+
+        private void ReleaseChildRenderTarget()
+        {
+            foreach (CachedChildControlSegment segment in _childRenderSegments)
+            {
+                if (segment.RenderTarget.IsValid)
+                    RenderingPipelineManager.ReturnUICacheTarget(segment.RenderTarget);
+            }
+
+            _childRenderSegments.Clear();
+            RenderDiagnostics.Count(RenderDiagnostics.Counter.CacheInvalidations);
+            _childRenderSegmentsValid = false;
+        }
+
+        protected virtual void DrawControl()
+        {
+            if (!DrawTexture) return;
+
+            if (!TextureValid)
+            {
+                CreateTexture();
+
+                if (!TextureValid) return;
+            }
+
+            float oldOpacity = RenderingPipelineManager.GetOpacity();
+
+            RenderingPipelineManager.SetOpacity(Opacity);
+
+            PresentTexture(ControlTexture, Parent, DisplayArea, IsEnabled ? Color.White : Color.FromArgb(75, 75, 75), this);
+
+            RenderingPipelineManager.SetOpacity(oldOpacity);
+
+            ExpireTime = CEnvir.Now + Config.CacheDuration;
+        }
+
+        public static void PresentTexture(RenderTexture texture, DXControl parent, Rectangle displayArea, Color colour, DXControl control, int offX = 0, int offY = 0, float scale = 1.0f, bool intersectParent = true)
+        {
+            PresentTexture(texture, null, parent, displayArea, colour, control, offX, offY, scale, intersectParent);
+        }
+
+        public static void PresentTexture(RenderTexture texture, Rectangle? sourceRectangle, DXControl parent, Rectangle displayArea, Color colour, DXControl control, int offX = 0, int offY = 0, float scale = 1.0f, bool intersectParent = true)
+        {
+            if (!texture.IsValid)
+                return;
+
+            if (intersectParent && control != null && scale == 1.0f && offX == 0 && offY == 0)
+            {
+                Rectangle clippedArea = Rectangle.Intersect(control.ClipArea, displayArea);
+                if (clippedArea.Width <= 0 || clippedArea.Height <= 0)
+                    return;
+
+                Rectangle clippedTextureArea = new Rectangle(
+                    clippedArea.X - displayArea.X,
+                    clippedArea.Y - displayArea.Y,
+                    clippedArea.Width,
+                    clippedArea.Height);
+
+                if (clippedTextureArea.Width <= 0 || clippedTextureArea.Height <= 0)
+                    return;
+
+                if (sourceRectangle.HasValue)
+                {
+                    Rectangle source = sourceRectangle.Value;
+                    int sourceOffsetX = clippedTextureArea.X;
+                    int sourceOffsetY = clippedTextureArea.Y;
+
+                    clippedTextureArea = new Rectangle(
+                        source.X + sourceOffsetX,
+                        source.Y + sourceOffsetY,
+                        Math.Min(clippedTextureArea.Width, source.Width - sourceOffsetX),
+                        Math.Min(clippedTextureArea.Height, source.Height - sourceOffsetY));
+
+                    if (clippedTextureArea.Width <= 0 || clippedTextureArea.Height <= 0)
+                        return;
+                }
+
+                RenderingPipelineManager.DrawTexture(texture, clippedTextureArea, clippedArea, colour);
+                return;
+            }
+
+            float finalScale = scale;
+            Rectangle scaledArea = displayArea;
+
+            Rectangle bounds = control?.UsesUIScale == true && ActiveScene is GameScene game
+                ? new Rectangle(ActiveScene.Location, game.UISize)
+                : ActiveScene.DisplayArea;
+            Rectangle scaledTextureArea = Rectangle.Intersect(bounds, scaledArea);
+
+            if (!control.IsMoving || !control.AllowDragOut)
+            {
+                while (parent != null)
+                {
+                    if (parent.IsMoving && parent.AllowDragOut)
+                    {
+                        bounds = control?.UsesUIScale == true && ActiveScene is GameScene dragGame
+                            ? new Rectangle(ActiveScene.Location, dragGame.UISize)
+                            : ActiveScene.DisplayArea;
+                        if (intersectParent)
+                            scaledTextureArea = Rectangle.Intersect(bounds, scaledArea);
+                        break;
+                    }
+
+                    Rectangle scaledParent = parent.DisplayArea;
+
+                    bounds = scaledParent;
+                    if (intersectParent)
+                        scaledTextureArea = Rectangle.Intersect(bounds, scaledTextureArea);
+
+                    if (bounds.IntersectsWith(scaledArea))
+                    {
+                        parent = parent.Parent;
+                        continue;
+                    }
+
+                    return;
+                }
+            }
+
+            if (scaledTextureArea.IsEmpty)
+            {
+                return;
+            }
+
+            Rectangle textureArea = new Rectangle(
+                scaledTextureArea.X - scaledArea.X,
+                scaledTextureArea.Y - scaledArea.Y,
+                scaledTextureArea.Width,
+                scaledTextureArea.Height);
+
+            if (textureArea.Width <= 0 || textureArea.Height <= 0)
+                return;
+
+            if (sourceRectangle.HasValue)
+            {
+                Rectangle source = sourceRectangle.Value;
+                int sourceOffsetX = textureArea.X;
+                int sourceOffsetY = textureArea.Y;
+
+                textureArea = new Rectangle(
+                    source.X + sourceOffsetX,
+                    source.Y + sourceOffsetY,
+                    Math.Min(textureArea.Width, source.Width - sourceOffsetX),
+                    Math.Min(textureArea.Height, source.Height - sourceOffsetY));
+
+                if (textureArea.Width <= 0 || textureArea.Height <= 0)
+                    return;
+            }
+
+            float destinationX = scaledTextureArea.X + offX;
+            float destinationY = scaledTextureArea.Y + offY;
+            float destinationWidth = textureArea.Width * finalScale;
+            float destinationHeight = textureArea.Height * finalScale;
+
+            if (destinationWidth <= 0 || destinationHeight <= 0)
+                return;
+
+            RectangleF destinationRectangle = new RectangleF(destinationX, destinationY, destinationWidth, destinationHeight);
+
+            RenderingPipelineManager.DrawTexture(texture, textureArea, destinationRectangle, colour);
+        }
+
+        #endregion
+
+        #endregion
+
+        #region IDisposable
+
+        public event EventHandler Disposing;
+        public bool IsDisposed { get; private set; }
+        public void Dispose()
+        {
+            Dispose(!IsDisposed);
+            GC.SuppressFinalize(this);
+        }
+        ~DXControl()
+        {
+            Dispose(false);
+        }
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                Disposing?.Invoke(this, EventArgs.Empty);
+
+                IsDisposed = true;
+                Disposing = null;
+
+                //Free Managed Resources
+                if (Controls != null)
+                {
+                    while (Controls.Count > 0)
+                        Controls[0].Dispose();
+
+                    Controls = null;
+                }
+
+                _AllowDragOut = false;
+                _AllowResize = false;
+                _BackColour = Color.Empty;
+                _Border = false;
+                _BorderColour = Color.Empty;
+                _BorderInformation = null;
+                _BorderSize = 0;
+                _CanResizeHeight = false;
+                _CanResizeWidth = false;
+                _DrawTexture = false;
+                _DisplayArea = Rectangle.Empty;
+                _Enabled = false;
+                _ForeColour = Color.Empty;
+                _Hint = null;
+                _IsControl = false;
+                _Location = Point.Empty;
+                _Modal = false;
+                _Movable = false;
+                _IgnoreMoveBounds = false;
+                _Opacity = 0F;
+                DXControl parent = _Parent;
+                parent?.Controls.Remove(this);
+                _Parent = null;
+                parent?.InvalidateChildCache();
+                _PassThrough = false;
+                _Size = Size.Empty;
+                _Sort = false;
+                _Sound = SoundIndex.None;
+                _Tag = null;
+                _Text = null;
+                _Visible = false;
+
+                _IsEnabled = false;
+                _IsVisible = false;
+                _IsMoving = false;
+                _IsResizing = false;
+
+                MovePoint = Point.Empty;
+                ResizePoint = Point.Empty;
+                ResizeLeft = false;
+                ResizeRight = false;
+                ResizeUp = false;
+                ResizeDown = false;
+
+
+                AllowDragOutChanged = null;
+                AllowResizeChanged = null;
+                BackColourChanged = null;
+                BorderChanged = null;
+                BorderColourChanged = null;
+                BorderInformationChanged = null;
+                BorderSizeChanged = null;
+                CanResizeHeightChanged = null;
+                CanResizeWidthChanged = null;
+                DrawTextureChanged = null;
+                DisplayAreaChanged = null;
+                EnabledChanged = null;
+                ForeColourChanged = null;
+                HintChanged = null;
+                IsControlChanged = null;
+                LocationChanged = null;
+                ModalChanged = null;
+                MovableChanged = null;
+                IgnoreMoveBoundsChanged = null;
+                OpacityChanged = null;
+                ParentChanged = null;
+                PassThroughChanged = null;
+                SizeChanged = null;
+                SortChanged = null;
+                SoundChanged = null;
+                TextChanged = null;
+                VisibleChanged = null;
+                IsEnabledChanged = null;
+                IsVisibleChanged = null;
+                IsMovingChanged = null;
+                IsResizingChanged = null;
+
+                MouseEnter = null;
+                MouseLeave = null;
+                Focus = null;
+                LostFocus = null;
+                MouseDown = null;
+                MouseUp = null;
+                MouseMove = null;
+                Moving = null;
+                MouseClick = null;
+                MouseDoubleClick = null;
+                MouseWheel = null;
+                KeyDown = null;
+                KeyUp = null;
+                KeyPress = null;
+
+                _beforeDraw = null;
+                _beforeChildrenDraw = null;
+                _afterDraw = null;
+
+                ProcessAction = null;
+            }
+
+            if (_MouseControl == this) _MouseControl = null;
+            if (_FocusControl == this) _FocusControl = null;
+            if (_ActiveScene == this) _ActiveScene = null;
+
+            DisposeTexture();
+        }
+
+        #endregion
+    }
+}

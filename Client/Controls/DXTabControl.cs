@@ -1,0 +1,1090 @@
+using Client.Envir;
+using Shared.Rendering;
+using Library;
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Linq;
+
+namespace Client.Controls
+{
+    public class DXTabControl : DXControl
+    {
+        #region Properties
+
+        #region SelectedTab
+
+        public DXTab SelectedTab
+        {
+            get => _SelectedTab;
+            set
+            {
+                if (_SelectedTab == value) return;
+
+                DXTab oldValue = _SelectedTab;
+                _SelectedTab = value;
+
+                OnSelectedTabChanged(oldValue, value);
+            }
+        }
+        private DXTab _SelectedTab;
+        public event EventHandler<EventArgs> SelectedTabChanged;
+        public virtual void OnSelectedTabChanged(DXTab oValue, DXTab nValue)
+        {
+            SelectedTabChanged?.Invoke(this, EventArgs.Empty);
+
+            if (oValue != null && oValue.Parent == this)
+                oValue.Selected = false;
+
+            if (nValue != null)
+                nValue.Selected = true;
+        }
+
+        #endregion
+
+        #region MarginLeft
+        public int MarginLeft
+        {
+            get => _MarginLeft;
+            set
+            {
+                if (_MarginLeft == value) return;
+
+                int oldValue = _MarginLeft;
+                _MarginLeft = value;
+
+                OnMarginLeftChanged(oldValue, value);
+            }
+        }
+        private int _MarginLeft;
+        public event EventHandler<EventArgs> MarginLeftChanged;
+        public virtual void OnMarginLeftChanged(int oValue, int nValue)
+        {
+            MarginLeftChanged?.Invoke(this, EventArgs.Empty);
+
+            TabsChanged();
+        }
+        #endregion
+
+        #region Padding
+        public int Padding
+        {
+            get => _Padding;
+            set
+            {
+                if (_Padding == value) return;
+
+                int oldValue = _Padding;
+                _Padding = value;
+
+                OnPaddingChanged(oldValue, value);
+            }
+        }
+        private int _Padding = 1;
+        public event EventHandler<EventArgs> PaddingChanged;
+        public virtual void OnPaddingChanged(int oValue, int nValue)
+        {
+            PaddingChanged?.Invoke(this, EventArgs.Empty);
+
+            TabsChanged();
+        }
+        #endregion
+
+        public List<DXButton> TabButtons = new List<DXButton>();
+        private DXButton LeftTabButton, RightTabButton;
+        private int FirstVisibleTabIndex;
+        private readonly Dictionary<DXButton, bool> TabButtonBaseVisibility = new Dictionary<DXButton, bool>();
+        private bool SuppressTabVisibilityTracking;
+
+        public override void OnDisplayAreaChanged(Rectangle oValue, Rectangle nValue)
+        {
+            base.OnDisplayAreaChanged(oValue, nValue);
+
+            if (Parent == null) return;
+
+            foreach (DXControl control in Controls)
+            {
+                DXTab tab = control as DXTab;
+
+                if (tab == null || tab.Updating) continue;
+
+                control.Size = new Size(Size.Width - control.Location.X, Size.Height - control.Location.Y);
+            }
+            TabsChanged();
+        }
+        #endregion
+
+        public DXTabControl()
+        {
+            PassThrough = true;
+
+            LeftTabButton = new DXButton
+            {
+                Parent = this,
+                ButtonType = ButtonType.DeselectedTab,
+                Size = new Size(TabHeight, TabHeight),
+                Label = { Text = "<" },
+                Visible = false,
+            };
+            LeftTabButton.MouseClick += (o, e) =>
+            {
+                if (!LeftTabButton.Enabled) return;
+
+                DXTab selected = SelectedTab;
+
+                List<DXButton> leftAlignedTabs = GetLeftAlignedTabs();
+
+                int currentIndex = selected?.TabButton == null ? -1 : leftAlignedTabs.IndexOf(selected.TabButton);
+
+                int firstVisible = -1;
+                for (int i = 0; i < leftAlignedTabs.Count; i++)
+                {
+                    if (!leftAlignedTabs[i].Visible) continue;
+
+                    if (firstVisible == -1)
+                        firstVisible = i;
+                }
+
+                if (currentIndex <= 0)
+                {
+                    FirstVisibleTabIndex = Math.Max(0, FirstVisibleTabIndex - 1);
+                    TabsChanged();
+                    return;
+                }
+
+                int nextIndex = currentIndex - 1;
+
+                if (firstVisible >= 0 && nextIndex < firstVisible)
+                {
+                    FirstVisibleTabIndex = Math.Max(0, FirstVisibleTabIndex - 1);
+                    TabsChanged();
+                }
+
+                SelectedTab = GetTabFromButton(leftAlignedTabs[nextIndex]) ?? selected;
+            };
+
+            RightTabButton = new DXButton
+            {
+                Parent = this,
+                ButtonType = ButtonType.DeselectedTab,
+                Size = new Size(TabHeight, TabHeight),
+                Label = { Text = ">" },
+                Visible = false,
+            };
+            RightTabButton.MouseClick += (o, e) =>
+            {
+                if (!RightTabButton.Enabled) return;
+
+                DXTab selected = SelectedTab;
+
+                List<DXButton> leftAlignedTabs = GetLeftAlignedTabs();
+
+                int currentIndex = selected?.TabButton == null ? -1 : leftAlignedTabs.IndexOf(selected.TabButton);
+
+                int lastVisible = -1;
+                for (int i = 0; i < leftAlignedTabs.Count; i++)
+                {
+                    if (!leftAlignedTabs[i].Visible) continue;
+
+                    lastVisible = i;
+                }
+
+                if (currentIndex < 0)
+                {
+                    FirstVisibleTabIndex = Math.Min(FirstVisibleTabIndex + 1, Math.Max(0, TabButtons.Count - 1));
+                    TabsChanged();
+                    return;
+                }
+
+                if (currentIndex < leftAlignedTabs.Count - 1)
+                {
+                    int nextIndex = currentIndex + 1;
+
+                    if (lastVisible >= 0 && nextIndex > lastVisible)
+                    {
+                        FirstVisibleTabIndex = Math.Min(FirstVisibleTabIndex + 1, Math.Max(0, TabButtons.Count - 1));
+                        TabsChanged();
+                    }
+
+                    SelectedTab = GetTabFromButton(leftAlignedTabs[nextIndex]) ?? selected;
+                    return;
+                }
+
+                FirstVisibleTabIndex = Math.Min(FirstVisibleTabIndex + 1, Math.Max(0, TabButtons.Count - 1));
+                TabsChanged();
+            };
+        }
+
+        #region Methods
+
+        private DXTab GetTabFromButton(DXButton button)
+        {
+            foreach (DXControl control in Controls)
+            {
+                DXTab tab = control as DXTab;
+
+                if (tab == null) continue;
+
+                if (tab.TabButton == button)
+                    return tab;
+            }
+
+            return null;
+        }
+
+        public void SetNewTab()
+        {
+            if (IsDisposed) return;
+
+            foreach (DXControl control in Controls)
+            {
+                DXTab tab = control as DXTab;
+
+                if (tab == null || tab == SelectedTab) continue;
+
+                _SelectedTab = null;
+                SelectedTab = tab;
+                return;
+            }
+
+            _SelectedTab = null;
+        }
+
+        public void TabsChanged()
+        {
+            if (SuppressTabVisibilityTracking) return;
+
+            SuppressTabVisibilityTracking = true;
+
+            if (SelectedTab == null)
+            {
+                foreach (DXControl control in Controls)
+                {
+                    DXTab tab = control as DXTab;
+
+                    if (tab == null || tab == SelectedTab) continue;
+
+                    SelectedTab = tab;
+                    break;
+                }
+            }
+
+            foreach (DXButton button in TabButtons)
+                RegisterTabButton(button);
+
+            if (SelectedTab != null && !IsTabUserVisible(SelectedTab.TabButton))
+                SelectedTab = null;
+
+            if (SelectedTab == null)
+            {
+                foreach (DXControl control in Controls)
+                {
+                    DXTab tab = control as DXTab;
+
+                    if (tab == null || !IsTabUserVisible(tab.TabButton)) continue;
+
+                    SelectedTab = tab;
+                    break;
+                }
+            }
+
+            List<DXButton> leftAlignedTabs = new List<DXButton>();
+            List<DXButton> rightAlignedTabs = new List<DXButton>();
+
+            foreach (DXButton control in TabButtons)
+            {
+                if (!IsTabUserVisible(control))
+                {
+                    control.Visible = false;
+                    continue;
+                }
+
+                if (control.RightAligned)
+                    rightAlignedTabs.Add(control);
+                else
+                    leftAlignedTabs.Add(control);
+            }
+
+            int leftTabsWidth = 0;
+            for (int i = 0; i < leftAlignedTabs.Count; i++)
+                leftTabsWidth += leftAlignedTabs[i].Size.Width + (i == 0 ? 0 : Padding);
+
+            int rightTabsWidth = 0;
+            for (int i = 0; i < rightAlignedTabs.Count; i++)
+                rightTabsWidth += rightAlignedTabs[i].Size.Width + (i == 0 ? 0 : Padding);
+
+            bool overflow = leftTabsWidth + MarginLeft + rightTabsWidth > Size.Width;
+
+            LeftTabButton.Visible = overflow && leftAlignedTabs.Count > 0;
+            RightTabButton.Visible = overflow && leftAlignedTabs.Count > 0;
+
+            if (!overflow)
+                FirstVisibleTabIndex = 0;
+
+            int x = MarginLeft;
+            if (LeftTabButton.Visible)
+            {
+                LeftTabButton.Location = new Point(0, 0);
+                x += LeftTabButton.Size.Width + Padding;
+            }
+
+            int rightStart = Size.Width;
+
+            for (int i = 0; i < rightAlignedTabs.Count; i++)
+            {
+                DXButton control = rightAlignedTabs[i];
+
+                rightStart -= control.Size.Width;
+                control.Location = new Point(rightStart, 0);
+
+                if (i < rightAlignedTabs.Count - 1 || RightTabButton.Visible)
+                    rightStart -= Padding;
+            }
+
+            if (RightTabButton.Visible)
+            {
+                rightStart -= RightTabButton.Size.Width;
+                RightTabButton.Location = new Point(rightStart, 0);
+                rightStart -= Padding;
+            }
+
+            int availableWidth = Math.Max(0, rightStart - x);
+
+            int selectedIndex = SelectedTab == null ? -1 : leftAlignedTabs.IndexOf(SelectedTab.TabButton);
+
+            if (!overflow)
+            {
+                foreach (DXButton control in leftAlignedTabs)
+                {
+                    control.Visible = true;
+                    control.Location = new Point(x, 0);
+                    x += control.Size.Width + Padding;
+                }
+
+                LeftTabButton.Enabled = false;
+                RightTabButton.Enabled = false;
+                SuppressTabVisibilityTracking = false;
+                return;
+            }
+
+            FirstVisibleTabIndex = Math.Min(FirstVisibleTabIndex, Math.Max(0, leftAlignedTabs.Count - 1));
+
+            int GetVisibleEndIndex(int startIndex)
+            {
+                int widthRemaining = availableWidth;
+                int endIndex = startIndex - 1;
+
+                for (int i = startIndex; i < leftAlignedTabs.Count; i++)
+                {
+                    int requiredWidth = leftAlignedTabs[i].Size.Width + (endIndex >= startIndex ? Padding : 0);
+
+                    if (requiredWidth > widthRemaining) break;
+
+                    widthRemaining -= requiredWidth;
+                    endIndex = i;
+                }
+
+                return Math.Max(endIndex, startIndex - 1);
+            }
+
+            int endVisible = GetVisibleEndIndex(FirstVisibleTabIndex);
+
+            if (endVisible < FirstVisibleTabIndex && leftAlignedTabs.Count > 0)
+                endVisible = FirstVisibleTabIndex;
+
+            if (selectedIndex >= 0)
+            {
+                if (selectedIndex < FirstVisibleTabIndex)
+                    FirstVisibleTabIndex = selectedIndex;
+
+                endVisible = GetVisibleEndIndex(FirstVisibleTabIndex);
+
+                while (selectedIndex > endVisible && FirstVisibleTabIndex < leftAlignedTabs.Count - 1)
+                {
+                    FirstVisibleTabIndex++;
+                    endVisible = GetVisibleEndIndex(FirstVisibleTabIndex);
+                }
+            }
+
+            foreach (DXButton control in leftAlignedTabs)
+                control.Visible = false;
+
+            x = MarginLeft + (LeftTabButton.Visible ? LeftTabButton.Size.Width + Padding : 0);
+
+            for (int i = FirstVisibleTabIndex; i <= endVisible && i >= 0; i++)
+            {
+                DXButton control = leftAlignedTabs[i];
+
+                control.Visible = true;
+                control.Location = new Point(x, 0);
+                x += control.Size.Width + Padding;
+            }
+
+            LeftTabButton.Enabled = FirstVisibleTabIndex > 0;
+            RightTabButton.Enabled = endVisible < leftAlignedTabs.Count - 1;
+
+            SuppressTabVisibilityTracking = false;
+        }
+
+        public void RegisterTabButton(DXButton button)
+        {
+            if (button == null) return;
+
+            if (!TabButtonBaseVisibility.ContainsKey(button))
+                TabButtonBaseVisibility[button] = button.Visible;
+
+            button.VisibleChanged -= TabButton_VisibleChanged;
+            button.VisibleChanged += TabButton_VisibleChanged;
+        }
+
+        public void UnregisterTabButton(DXButton button)
+        {
+            if (button == null) return;
+
+            button.VisibleChanged -= TabButton_VisibleChanged;
+            TabButtonBaseVisibility.Remove(button);
+        }
+
+        private void TabButton_VisibleChanged(object sender, EventArgs e)
+        {
+            if (SuppressTabVisibilityTracking) return;
+
+            DXButton button = sender as DXButton;
+
+            if (button == null) return;
+
+            TabButtonBaseVisibility[button] = button.Visible;
+
+            TabsChanged();
+        }
+
+        private List<DXButton> GetLeftAlignedTabs()
+        {
+            List<DXButton> leftAlignedTabs = new List<DXButton>();
+
+            foreach (DXButton button in TabButtons)
+            {
+                RegisterTabButton(button);
+
+                if (!IsTabUserVisible(button))
+                {
+                    button.Visible = false;
+                    continue;
+                }
+
+                if (button.RightAligned) continue;
+                leftAlignedTabs.Add(button);
+            }
+
+            return leftAlignedTabs;
+        }
+
+        private bool IsTabUserVisible(DXButton button)
+        {
+            if (button == null) return false;
+
+            if (!TabButtonBaseVisibility.TryGetValue(button, out bool visible))
+                return button.Visible;
+
+            return visible;
+        }
+
+        protected override void DrawChildControls()
+        {
+            DrawTabChild(LeftTabButton);
+            DrawTabChild(RightTabButton);
+
+            foreach (DXButton button in TabButtons)
+                DrawTabChild(button);
+
+            bool selectedTabDrawn = false;
+
+            foreach (DXControl control in Controls)
+            {
+                if (control == SelectedTab)
+                {
+                    DrawTabChild(SelectedTab);
+                    selectedTabDrawn = true;
+                    continue;
+                }
+
+                if (control is DXTab) continue;
+                if (control == LeftTabButton || control == RightTabButton) continue;
+                if (control is DXButton button && TabButtons.Contains(button)) continue;
+
+                DrawTabChild(control);
+            }
+
+            if (!selectedTabDrawn)
+                DrawTabChild(SelectedTab);
+        }
+
+        private static void DrawTabChild(DXControl control)
+        {
+            if (control == null || !control.IsVisible || control.DisplayArea.Width <= 0 || control.DisplayArea.Height <= 0)
+                return;
+
+            control.Draw();
+        }
+
+        #endregion
+
+        #region IDisposable
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+
+            if (disposing)
+            {
+                _SelectedTab = null;
+                SelectedTabChanged = null;
+
+                if (LeftTabButton != null)
+                {
+                    if (!LeftTabButton.IsDisposed)
+                        LeftTabButton.Dispose();
+
+                    LeftTabButton = null;
+                }
+
+                if (RightTabButton != null)
+                {
+                    if (!RightTabButton.IsDisposed)
+                        RightTabButton.Dispose();
+
+                    RightTabButton = null;
+                }
+
+                foreach (DXButton button in TabButtonBaseVisibility.Keys.ToList())
+                {
+                    button.VisibleChanged -= TabButton_VisibleChanged;
+                }
+
+                TabButtonBaseVisibility.Clear();
+
+                TabButtons.Clear();
+                TabButtons = null;
+
+                FirstVisibleTabIndex = 0;
+
+                _Padding = 0;
+                _MarginLeft = 0;
+
+                PaddingChanged = null;
+                MarginLeftChanged = null;
+            }
+        }
+
+        #endregion
+    }
+
+    public class DXTab : DXControl
+    {
+        #region Properties
+
+        #region CurrentTabControl
+
+        public DXTabControl CurrentTabControl
+        {
+            get => _CurrentTabControl;
+            set
+            {
+                if (_CurrentTabControl == value) return;
+
+                DXTabControl oldValue = _CurrentTabControl;
+                _CurrentTabControl = value;
+
+                OnCurrentTabControlChanged(oldValue, value);
+            }
+        }
+        private DXTabControl _CurrentTabControl;
+        public event EventHandler<EventArgs> CurrentTabControlChanged;
+        public virtual void OnCurrentTabControlChanged(DXTabControl oValue, DXTabControl nValue)
+        {
+            if (oValue?.SelectedTab == this)
+            {
+                oValue.SelectedTab = null;
+                oValue.SetNewTab();
+            }
+
+            if (oValue != null && nValue != null)
+                TabButton.MovePoint = new Point(TabButton.MovePoint.X - oValue.DisplayArea.X + nValue.DisplayArea.X, TabButton.MovePoint.Y - oValue.DisplayArea.Y + nValue.DisplayArea.Y);
+
+            if (oValue != null && oValue.Controls.Count == 0)
+                oValue.Dispose();
+
+            CurrentTabControlChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region DrawOtherBorder
+
+        public bool DrawOtherBorder
+        {
+            get => _DrawOtherBorder;
+            set
+            {
+                if (_DrawOtherBorder == value) return;
+
+                bool oldValue = _DrawOtherBorder;
+                _DrawOtherBorder = value;
+
+                OnDrawOtherBorderChanged(oldValue, value);
+            }
+        }
+        private bool _DrawOtherBorder;
+        public event EventHandler<EventArgs> DrawOtherBorderChanged;
+        public virtual void OnDrawOtherBorderChanged(bool oValue, bool nValue)
+        {
+            DrawOtherBorderChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region Selected
+
+        public bool Selected
+        {
+            get => _Selected;
+            set
+            {
+                if (_Selected == value) return;
+
+                bool oldValue = _Selected;
+                _Selected = value;
+
+                OnSelectedChanged(oldValue, value);
+            }
+        }
+        private bool _Selected;
+        public event EventHandler<EventArgs> SelectedChanged;
+        public virtual void OnSelectedChanged(bool oValue, bool nValue)
+        {
+            if (Selected)
+            {
+                Visible = true;
+                TabButton.Pressed = true;
+
+                if (TabButton.LibraryFile != LibraryFile.None)
+                {
+                }
+                else
+                {
+                    TabButton.ButtonType = ButtonType.SelectedTab;
+                    TabButton.Label.ForeColour = Constants.ActiveTabColour;
+                }
+            }
+            else
+            {
+                Visible = false;
+                TabButton.Pressed = false;
+
+                if (TabButton.LibraryFile != LibraryFile.None)
+                {
+                }
+                else
+                {
+                    TabButton.ButtonType = ButtonType.DeselectedTab;
+                    TabButton.Label.ForeColour = Constants.InactiveTabColour;
+                }
+            }
+
+            SelectedChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region MinimumTabWidth
+        public int MinimumTabWidth
+        {
+            get => _MinimumTabWidth;
+            set
+            {
+                if (_MinimumTabWidth == value) return;
+
+                int oldValue = _MinimumTabWidth;
+                _MinimumTabWidth = value;
+
+                OnMinimumTabWidthChanged(oldValue, value);
+            }
+        }
+        private int _MinimumTabWidth;
+        public event EventHandler<EventArgs> MinimumTabWidthChanged;
+        public virtual void OnMinimumTabWidthChanged(int oValue, int nValue)
+        {
+            MinimumTabWidthChanged?.Invoke(this, EventArgs.Empty);
+
+            if (TabButton != null)
+            {
+                TabButton.Size = new Size(Math.Max(MinimumTabWidth, DXLabel.GetSize(TabButton.Label.Text, TabButton.Label.Font, TabButton.Label.Outline).Width), TabHeight);
+            }
+        }
+        #endregion
+
+        public DXButton TabButton { get; private set; }
+
+        public float? OldOpacity { get; set; }
+
+        public bool Updating;
+
+        public override void OnDisplayAreaChanged(Rectangle oValue, Rectangle nValue)
+        {
+            base.OnDisplayAreaChanged(oValue, nValue);
+
+            if (Parent == null) return;
+
+            if (IsResizing && Updating) return;
+
+            Size = new Size(Parent.Size.Width - Location.X, Parent.Size.Height - Location.Y);
+        }
+
+        public override void OnParentChanged(DXControl oValue, DXControl nValue)
+        {
+            base.OnParentChanged(oValue, nValue);
+
+            DXTabControl oldTab = oValue as DXTabControl;
+
+            if (oldTab != null)
+            {
+                oldTab.UnregisterTabButton(TabButton);
+                oldTab.TabButtons.Remove(TabButton);
+                oldTab.TabsChanged();
+            }
+
+            if (Parent == null)
+                TabButton.Parent = null;
+
+            if (Parent == null) return;
+
+            Size = new Size(Parent.Size.Width - Location.X, Parent.Size.Height - Location.Y);
+
+            DXTabControl tab = Parent as DXTabControl;
+
+            if (tab == null) return;
+            Selected = tab.SelectedTab == this;
+            TabButton.Parent = tab;
+            tab.Controls.Remove(TabButton);
+            tab.Controls.Insert(0, TabButton);
+            tab.TabButtons.Add(TabButton);
+            tab.RegisterTabButton(TabButton);
+            tab.TabsChanged();
+
+            CurrentTabControl = tab;
+        }
+
+        public override void OnSizeChanged(Size oValue, Size nValue)
+        {
+            if (IsResizing)
+            {
+                if (Updating) return;
+                Point location = Parent.Location;
+                Size size = new Size(Parent.Size.Width - oValue.Width + nValue.Width, Parent.Size.Height - oValue.Height + nValue.Height);
+
+                if (ResizeUp)
+                    location = new Point(location.X, location.Y + oValue.Height - nValue.Height);
+
+                if (ResizeLeft)
+                    location = new Point(location.X + oValue.Width - nValue.Width, location.Y);
+
+                Updating = true;
+                Parent.Size = size;
+                Parent.Location = location;
+                Location = new Point(0, TabHeight - 1);
+                Updating = false;
+                return;
+            }
+
+            base.OnSizeChanged(oValue, nValue);
+
+        }
+        #endregion
+
+        public DXTab()
+        {
+            Location = new Point(0, TabHeight - 1);
+            BackColour = BackColour = Constants.WindowBackColour;
+            DrawTexture = true;
+            BorderColour = Constants.PrimaryColour;
+            PassThrough = true;
+            Visible = false;
+
+            MinimumTabWidth = 60;
+
+            TabButton = new DXButton
+            {
+                ButtonType = ButtonType.DeselectedTab,
+                Size = new Size(60, TabHeight),
+                Label = { ForeColour = Constants.InactiveTabColour }
+            };
+            TabButton.Label.TextChanged += (o, e) =>
+            {
+                TabButton.Size = new Size(Math.Max(MinimumTabWidth, DXLabel.GetSize(TabButton.Label.Text, TabButton.Label.Font, TabButton.Label.Outline).Width), TabHeight);
+            };
+            TabButton.MouseClick += (o, e) =>
+            {
+                DXTabControl tab = TabButton.Parent as DXTabControl;
+                if (tab == null) return;
+                tab.SelectedTab = this;
+            };
+            TabButton.LocationChanged += TabButton_LocationChanged;
+            TabButton.IsMovingChanged += TabButton_IsMovingChanged;
+        }
+
+        #region Methods
+        private void TabButton_IsMovingChanged(object sender, EventArgs e)
+        {
+            if (!IsMoving)
+            {
+                DXTabControl cTab = Parent as DXTabControl;
+                if (cTab != null)
+                {
+                    cTab.Controls.Remove(TabButton);
+                    cTab.Controls.Insert(0, TabButton);
+                    cTab.TabsChanged();
+                }
+                else
+                {
+                    DXControl oldParent = Parent;
+
+                    DXTabControl nTab = new DXTabControl
+                    {
+                        Parent = TabButton.Parent.Parent,
+                        Location = new Point(TabButton.DisplayArea.X - ActiveScene.Location.X, TabButton.DisplayArea.Y - ActiveScene.Location.Y),
+                        Visible = true,
+
+                        PassThrough = TabButton.Parent.PassThrough,
+                        Size = TabButton.Parent.Size,
+                        Movable = TabButton.Parent.Movable,
+                        Border = TabButton.Parent.Border,
+                        BorderColour = TabButton.Parent.BorderColour,
+                        AllowResize = TabButton.Parent.AllowResize,
+                    };
+
+                    Parent = nTab;
+                    nTab.SelectedTab = this;
+                    oldParent.Dispose();
+                }
+
+                TabButton.Tag = null;
+                Size = new Size(Parent.Size.Width - Location.X, Parent.Size.Height - Location.Y);
+
+            }
+        }
+
+        private void TabButton_LocationChanged(object sender, EventArgs e)
+        {
+            if (Updating || !TabButton.IsMoving) return;
+
+            if (Parent?.Parent == null) return;
+
+            const int threshhold = 20;
+            foreach (DXControl control in Parent?.Parent.Controls) //parent.parent
+            {
+                DXTabControl tab = control as DXTabControl;
+
+                if (tab == null) continue;
+                if (tab.DisplayArea.Left - TabButton.DisplayArea.Right > threshhold || tab.DisplayArea.Top - TabButton.DisplayArea.Bottom > threshhold ||
+                    TabButton.DisplayArea.Left - tab.DisplayArea.Right > threshhold || TabButton.DisplayArea.Top - tab.DisplayArea.Top > threshhold) continue;
+
+                DXControl oldParent = Parent;
+                Updating = true;
+                Parent = control;
+
+                Updating = false;
+
+                if (!(oldParent is DXTabControl))
+                    oldParent.Dispose();
+                //FOUND 
+
+                //Visible = tab == Parent;
+                Parent = tab;
+
+                if (OldOpacity.HasValue)
+                    Opacity = OldOpacity.Value;
+
+                TabButton.Tag = null;
+
+                int w = 0;
+                int pivot = TabButton.Location.X + TabButton.Size.Width / 2;
+                for (int i = 0; i < tab.TabButtons.Count; i++)
+                {
+                    DXButton button = tab.TabButtons[i];
+
+                    w += button.Size.Width;
+
+                    if (w < pivot) continue;
+
+                    if (tab.TabButtons[i] == TabButton) return; //IF SAME PARENT
+
+
+                    tab.TabButtons.Remove(TabButton);
+                    tab.TabButtons.Insert(i, TabButton);
+                    Updating = true;
+                    tab.TabsChanged();
+                    Updating = false;
+                    break;
+                }
+
+
+                return;
+            }
+
+            if (!(Parent is DXTabControl))
+            {
+                Parent.Location = new Point(TabButton.DisplayArea.X - ActiveScene.Location.X, TabButton.DisplayArea.Y - ActiveScene.Location.Y);
+                return;
+            }
+
+
+            DXControl panel = new DXLabel
+            {
+                Visible = true,
+                Parent = Parent.Parent, //Parent.Parent
+                Size = Parent.Size,
+                Location = new Point(TabButton.DisplayArea.X - ActiveScene.Location.X, TabButton.DisplayArea.Y - ActiveScene.Location.Y),
+            };
+
+            TabButton.Tag = Parent.Size;
+            Parent = panel;
+            Visible = true;
+
+            OldOpacity = Opacity;
+            Opacity = 0.5F;
+
+        }
+
+        protected internal override void UpdateBorderInformation()
+        {
+            BorderInformation = null;
+            if (!Border || Size.Width == 0 || Size.Height == 0)
+            {
+                return;
+            }
+
+            BorderInformation = new[]
+            {
+                new LinePoint(1, 1),
+                new LinePoint(Size.Width - 1, 1),
+                new LinePoint(Size.Width - 1, Size.Height - 1),
+                new LinePoint(1, Size.Height - 1),
+                new LinePoint(1, 1)
+            };
+        }
+
+        public override void Draw()
+        {
+            if (!IsVisible || Size.Width == 0 || Size.Height == 0) return;
+
+            OnBeforeDraw();
+            DrawControl();
+            OnBeforeChildrenDraw();
+            if (DrawOtherBorder)
+                DrawTabBorder();
+            DrawChildControls();
+            DrawBorder();
+            OnAfterDraw();
+        }
+
+        protected void DrawTabBorder()
+        {
+            if (InterfaceLibrary == null)
+            {
+                return;
+            }
+
+            RenderSurface oldSurface = RenderingPipelineManager.GetCurrentSurface();
+            RenderingPipelineManager.SetSurface(RenderingPipelineManager.GetScratchSurface());
+            RenderingPipelineManager.Clear(RenderClearFlags.Target, Color.FromArgb(0), 0, 0);
+
+            DrawEdges();
+
+            RenderingPipelineManager.SetSurface(oldSurface);
+
+            float oldOpacity = RenderingPipelineManager.GetOpacity();
+
+            RenderingPipelineManager.SetOpacity(Opacity);
+
+            RenderTexture scratchHandle = RenderingPipelineManager.GetScratchTexture();
+
+            PresentTexture(scratchHandle, Parent, DisplayArea, ForeColour, this);
+
+            RenderingPipelineManager.SetOpacity(oldOpacity);
+        }
+        public void DrawEdges()
+        {
+            InterfaceLibrary.Draw(25, 0, 0, Color.White, false, 1F, ImageType.Image);
+
+            Size s = InterfaceLibrary.GetSize(26);
+            InterfaceLibrary.Draw(26, Size.Width - s.Width, 0, Color.White, false, 1F, ImageType.Image);
+
+            s = InterfaceLibrary.GetSize(8);
+            InterfaceLibrary.Draw(8, 0, Size.Height - s.Height, Color.White, false, 1F, ImageType.Image);
+
+            s = InterfaceLibrary.GetSize(9);
+            InterfaceLibrary.Draw(9, Size.Width - s.Width, Size.Height - s.Height, Color.White, false, 1F, ImageType.Image);
+
+            int x = s.Width;
+            int y = s.Height;
+
+            s = InterfaceLibrary.GetSize(2);
+            InterfaceLibrary.Draw(2, x, 0, Color.White, new Rectangle(0, 0, Size.Width - x * 2, s.Height), 1f, ImageType.Image);
+            InterfaceLibrary.Draw(2, x, Size.Height - s.Height, Color.White, new Rectangle(0, 0, Size.Width - x * 2, s.Height), 1f, ImageType.Image);
+
+            s = InterfaceLibrary.GetSize(1);
+            InterfaceLibrary.Draw(1, 0, y, Color.White, new Rectangle(0, 0, s.Width, Size.Height - y * 2), 1F, ImageType.Image);
+            InterfaceLibrary.Draw(1, Size.Width - s.Width, y, Color.White, new Rectangle(0, 0, s.Width, Size.Height - y * 2), 1F, ImageType.Image);
+        }
+
+        #endregion
+
+        #region IDisposable
+        protected override void Dispose(bool disposing)
+        {
+            DXTabControl tabControl = Parent as DXTabControl ?? CurrentTabControl;
+
+            if (disposing && tabControl != null && !tabControl.IsDisposed && TabButton != null)
+            {
+                if (tabControl.SelectedTab == this)
+                    tabControl.SelectedTab = null;
+
+                tabControl.UnregisterTabButton(TabButton);
+                tabControl.TabButtons.Remove(TabButton);
+            }
+
+            base.Dispose(disposing);
+
+            if (disposing)
+            {
+
+                if (TabButton != null)
+                {
+                    if (!TabButton.IsDisposed)
+                        TabButton.Dispose();
+
+                    TabButton = null;
+                }
+
+                OldOpacity = null;
+                _DrawOtherBorder = false;
+                Updating = false;
+
+                _CurrentTabControl = null;
+                _Selected = false;
+
+
+                SelectedChanged = null;
+                DrawOtherBorderChanged = null;
+                CurrentTabControlChanged = null;
+
+                if (tabControl != null && !tabControl.IsDisposed)
+                {
+                    tabControl.SetNewTab();
+                    tabControl.TabsChanged();
+                }
+            }
+        }
+        #endregion
+    }
+}

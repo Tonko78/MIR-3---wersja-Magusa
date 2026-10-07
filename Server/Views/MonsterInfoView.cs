@@ -1,0 +1,56 @@
+﻿using DevExpress.XtraBars;
+using Library;
+using Library.SystemModels;
+using PluginCore;
+using System;
+
+namespace Server.Views
+{
+    public partial class MonsterInfoView : DevExpress.XtraBars.Ribbon.RibbonForm
+    {
+        public MonsterInfoView()
+        {
+            InitializeComponent();
+
+            MonsterInfoGridControl.DataSource = SMain.Session.GetCollection<MonsterInfo>().Binding;
+
+            RegionLookUpEdit.DataSource = SMain.Session.GetCollection<MapRegion>().Binding;
+            ItemLookUpEdit.DataSource = SMain.Session.GetCollection<ItemInfo>().Binding;
+
+            MonsterImageComboBox.Items.AddEnum<MonsterImage>();
+            StatComboBox.Items.AddEnum<Stat>();
+
+            PluginGridActionBinder.Attach(MonsterInfoGridControl, MonsterInfoGridView, typeof(MonsterInfo), this);
+        }
+
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+
+            SMain.SetUpView(MonsterInfoGridView);
+            SMain.SetUpView(MonsterInfoStatsGridView);
+            SMain.SetUpView(DropsGridView);
+            SMain.SetUpView(RespawnsGridView);
+        }
+
+        private void SaveButton_ItemClick(object sender, ItemClickEventArgs e)
+        {
+            SMain.Session.Save(true);
+        }
+
+        private void ImportButton_ItemClick(object sender, ItemClickEventArgs e)
+        {
+            JsonImporter.Import<MonsterInfo>();
+        }
+
+        private void ExportButton_ItemClick(object sender, ItemClickEventArgs e)
+        {
+            JsonExporter.Export<MonsterInfo>(MonsterInfoGridView);
+        }
+
+        private void InsertRowButton_ItemClick(object sender, ItemClickEventArgs e)
+        {
+            SMain.InsertRowAfterFocusedObject<MonsterInfo>(MonsterInfoGridView);
+        }
+    }
+}

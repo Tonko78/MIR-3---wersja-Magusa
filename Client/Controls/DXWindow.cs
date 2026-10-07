@@ -1,0 +1,710 @@
+using Client.Envir;
+using Shared.Rendering;
+using Client.UserModels;
+using Library;
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Linq;
+using System.Windows.Forms;
+using Font = System.Drawing.Font;
+
+//Cleaned
+namespace Client.Controls
+{
+    public abstract class DXWindow : DXControl
+    {
+        #region Properties
+
+        public static List<DXWindow> Windows = new List<DXWindow>();
+
+        #region HasTopBorder
+
+        public bool HasTopBorder
+        {
+            get => _HasTopBorder;
+            set
+            {
+                if (_HasTopBorder == value) return;
+
+                bool oldValue = _HasTopBorder;
+                _HasTopBorder = value;
+
+                OnHasTopBorderChanged(oldValue, value);
+            }
+        }
+        private bool _HasTopBorder;
+        public event EventHandler<EventArgs> HasTopBorderChanged;
+        public virtual void OnHasTopBorderChanged(bool oValue, bool nValue)
+        {
+            HasTopBorderChanged?.Invoke(this, EventArgs.Empty);
+
+            UpdateClientArea();
+        }
+
+        #endregion
+
+        #region HasTitle
+
+        public bool HasTitle
+        {
+            get => _HasTitle;
+            set
+            {
+                if (_HasTitle == value) return;
+
+                bool oldValue = _HasTitle;
+                _HasTitle = value;
+
+                OnHasTitleChanged(oldValue, value);
+            }
+        }
+        private bool _HasTitle;
+        public event EventHandler<EventArgs> HasTitleChanged;
+        public virtual void OnHasTitleChanged(bool oValue, bool nValue)
+        {
+            HasTitleChanged?.Invoke(this, EventArgs.Empty);
+
+            UpdateClientArea();
+            if (TitleLabel == null) return;
+            TitleLabel.Visible = HasTitle;
+        }
+
+        #endregion
+
+        #region HasFooter
+
+        public bool SlimFooter
+        {
+            get => _SlimFooter;
+            set
+            {
+                if (_SlimFooter == value) return;
+
+                bool oldValue = _SlimFooter;
+                _SlimFooter = value;
+
+                OnSlimFooterChanged(oldValue, value);
+            }
+        }
+        private bool _SlimFooter;
+        public event EventHandler<EventArgs> SlimFooterChanged;
+        public virtual void OnSlimFooterChanged(bool oValue, bool nValue)
+        {
+            SlimFooterChanged?.Invoke(this, EventArgs.Empty);
+
+            UpdateClientArea();
+        }
+
+        public bool HasFooter
+        {
+            get => _HasFooter;
+            set
+            {
+                if (_HasFooter == value) return;
+
+                bool oldValue = _HasFooter;
+                _HasFooter = value;
+
+                OnHasFooterChanged(oldValue, value);
+            }
+        }
+        private bool _HasFooter;
+        public event EventHandler<EventArgs> HasFooterChanged;
+        public virtual void OnHasFooterChanged(bool oValue, bool nValue)
+        {
+            HasFooterChanged?.Invoke(this, EventArgs.Empty);
+
+            UpdateClientArea();
+        }
+
+        #endregion
+
+        #region ClientArea
+
+        public Rectangle ClientArea
+        {
+            get => _ClientArea;
+            set
+            {
+                if (_ClientArea == value) return;
+
+                Rectangle oldValue = _ClientArea;
+                _ClientArea = value;
+
+                OnClientAreaChanged(oldValue, value);
+            }
+        }
+        private Rectangle _ClientArea;
+        public event EventHandler<EventArgs> ClientAreaChanged;
+        public virtual void OnClientAreaChanged(Rectangle oValue, Rectangle nValue)
+        {
+            ClientAreaChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        public abstract WindowType Type { get; }
+        public abstract bool CustomSize { get; }
+        public abstract bool AutomaticVisibility { get; }
+
+        public DXButton CloseButton { get; protected set; }
+        public DXLabel TitleLabel { get; protected set; }
+
+        #region DropShadow
+
+        public bool DropShadow
+        {
+            get => _DropShadow;
+            set
+            {
+                if (_DropShadow == value) return;
+
+                bool oldValue = _DropShadow;
+                _DropShadow = value;
+
+                OnDropShadowChanged(oldValue, value);
+            }
+        }
+        private bool _DropShadow;
+        public event EventHandler<EventArgs> DropShadowChanged;
+        public virtual void OnDropShadowChanged(bool oValue, bool nValue)
+        {
+            DropShadowChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        private RenderTargetResource _windowRenderTarget;
+        public RenderTexture WindowTexture;
+        public RenderSurface WindowSurface { get; private set; }
+        public bool WindowValid;
+
+        public override void OnSizeChanged(Size oValue, Size nValue)
+        {
+            base.OnSizeChanged(oValue, nValue);
+
+            UpdateClientArea();
+            UpdateLocations();
+
+            if (Settings != null && IsResizing)
+            {
+                Settings.Size = nValue;
+                Settings.Location = Location;
+            }
+        }
+        public override void OnParentChanged(DXControl oValue, DXControl nValue)
+        {
+            base.OnParentChanged(oValue, nValue);
+
+            if (Parent == null) return;
+
+            UpdateClientArea();
+
+            UpdateLocations();
+        }
+        public override void OnLocationChanged(Point oValue, Point nValue)
+        {
+            base.OnLocationChanged(oValue, nValue);
+
+            if (Settings != null && IsMoving)
+                Settings.Location = nValue;
+        }
+
+        public override void OnVisibleChanged(bool oValue, bool nValue)
+        {
+            base.OnVisibleChanged(oValue, nValue);
+
+            if (IsVisible)
+                BringToFront();
+
+            if (Settings != null && AutomaticVisibility)
+                Settings.Visible = nValue;
+        }
+
+        public WindowSetting Settings;
+
+        #endregion
+
+        public static int HeaderBarSize { get; }
+        public static int HeaderSize { get; }
+        public static int NoHeaderSize { get; }
+        public static int FooterSize { get; }
+        public static int NoFooterSize { get; }
+        public static int SlimFooterSize { get; }
+
+        static DXWindow()
+        {
+            CEnvir.LibraryList.TryGetValue(LibraryFile.Interface, out InterfaceLibrary);
+
+            if (InterfaceLibrary == null) return;
+
+            HeaderBarSize = InterfaceLibrary.GetSize(0).Height;
+
+            HeaderSize = HeaderBarSize;
+            HeaderSize += InterfaceLibrary.GetSize(3).Height;
+
+            NoHeaderSize = InterfaceLibrary.GetSize(2).Height;
+
+            FooterSize = InterfaceLibrary.GetSize(126).Height;
+            FooterSize += InterfaceLibrary.GetSize(2).Height;
+            FooterSize += InterfaceLibrary.GetSize(10).Height;
+
+            NoFooterSize = InterfaceLibrary.GetSize(2).Height;
+            SlimFooterSize = InterfaceLibrary.GetSize(126).Height;
+        }
+
+        protected DXWindow()
+        {
+            Windows.Add(this);
+
+            DrawTexture = true;
+            CacheChildControls = true;
+            BackColour = Constants.WindowBackColour;
+            HasTitle = true;
+            Movable = true;
+            HasTopBorder = true;
+            Sort = true;
+
+            CloseButton = new DXButton
+            {
+                Parent = this,
+                Index = 15,
+                LibraryFile = LibraryFile.Interface,
+                Hint = CEnvir.Language.CommonControlClose,
+                HintPosition = HintPosition.TopLeft
+            };
+            CloseButton.MouseClick += (o, e) => Visible = false;
+
+            TitleLabel = new DXWindowTitleLabel
+            {
+                Text = "Window",
+                Parent = this,
+                Visible = HasTitle,
+            };
+        }
+
+        #region Methods
+
+        public override void ResolutionChanged()
+        {
+            Settings = null;
+
+            base.ResolutionChanged();
+
+            DisposeTexture();
+        }
+
+        protected override void CreateTexture()
+        {
+            base.CreateTexture();
+
+            if (!WindowTexture.IsValid || DisplayArea.Size != TextureSize)
+            {
+                ReleaseWindowRenderTarget();
+
+                Size backBufferSize = RenderingPipelineManager.GetBackBufferSize();
+                _windowRenderTarget = RenderingPipelineManager.CreateRenderTarget(backBufferSize);
+
+                WindowTexture = _windowRenderTarget.Texture;
+                WindowSurface = _windowRenderTarget.Surface;
+                WindowValid = false;
+            }
+        }
+        public override void DisposeTexture()
+        {
+            base.DisposeTexture();
+
+            ReleaseWindowRenderTarget();
+
+        }
+        private void ReleaseWindowRenderTarget()
+        {
+            if (_windowRenderTarget.IsValid)
+            {
+                RenderingPipelineManager.ReleaseRenderTarget(_windowRenderTarget);
+                _windowRenderTarget = default;
+            }
+
+            WindowTexture = default;
+            WindowSurface = default;
+            WindowValid = false;
+        }
+        private void UpdateLocations()
+        {
+            if (CloseButton != null)
+                CloseButton.Location = new Point(DisplayArea.Width - CloseButton.Size.Width - 3, 3);
+
+        }
+
+        protected override void OnBeforeChildrenDraw()
+        {
+            base.OnBeforeChildrenDraw();
+
+            EnsureChromeOrder();
+        }
+
+        private void EnsureChromeOrder()
+        {
+            if (Controls == null || Controls.Count == 0) return;
+
+            bool hasTitle = TitleLabel != null && Controls.Contains(TitleLabel);
+            bool hasCloseButton = CloseButton != null && Controls.Contains(CloseButton);
+            int expectedTitleIndex = Controls.Count - (hasCloseButton ? 2 : 1);
+
+            if ((!hasTitle || Controls.IndexOf(TitleLabel) == expectedTitleIndex) &&
+                (!hasCloseButton || Controls[Controls.Count - 1] == CloseButton)) return;
+
+            if (hasTitle)
+                Controls.Remove(TitleLabel);
+
+            if (hasCloseButton)
+                Controls.Remove(CloseButton);
+
+            if (hasTitle)
+                Controls.Add(TitleLabel);
+
+            if (hasCloseButton)
+                Controls.Add(CloseButton);
+
+            InvalidateChildCache();
+        }
+
+        protected internal override void UpdateDisplayArea()
+        {
+            base.UpdateDisplayArea();
+
+            WindowValid = false;
+        }
+
+        public override void OnKeyDown(KeyEventArgs e)
+        {
+            base.OnKeyDown(e);
+
+            switch (e.KeyCode)
+            {
+                case Keys.Escape:
+                    if (CloseButton.Visible)
+                    {
+                        CloseButton.InvokeMouseClick();
+                        if (!Config.EscapeCloseAll)
+                            e.Handled = true;
+                    }
+                    break;
+            }
+        }
+
+        public void UpdateClientArea()
+        {
+            ClientArea = GetClientArea(Size);
+        }
+
+        public void SetClientSize(Size clientSize)
+        {
+            Size = GetSize(clientSize);
+        }
+
+        public Size GetSize(Size clientSize)
+        {
+            int w = 3 + 6 + 6 + 3; //Border Padding Padding Border
+            int h = 6 + 6; //Padding Padding
+
+
+            if (!HasTopBorder)
+                h += NoHeaderSize;
+            else if (HasTitle)
+                h += HeaderSize;
+            else
+                h += HeaderBarSize;
+
+            if (!HasFooter)
+            {
+                h += NoFooterSize;
+
+                //if (SlimFooter)
+                //    h -= (SlimFooterSize + 20);
+            }
+            else
+                h += FooterSize;
+
+            return new Size(clientSize.Width + w, clientSize.Height + h);
+        }
+
+        public Rectangle GetClientArea(Size size)
+        {
+            int x = 6 + 3;
+            int y = 6;
+
+            if (!HasTopBorder)
+                y += NoHeaderSize;
+            else if (HasTitle)
+                y += HeaderSize;
+            else
+                y += HeaderBarSize;
+
+            int w = size.Width - x * 2;
+            int h = size.Height - y - 6;
+
+            if (!HasFooter)
+            {
+                h += NoFooterSize;
+
+                if (SlimFooter)
+                    h -= (SlimFooterSize);
+            }
+            else
+                h -= FooterSize;
+
+            return new Rectangle(x, y, w, h);
+        }
+
+        public override void Draw()
+        {
+            if (!IsVisible || Size.Width == 0 || Size.Height == 0) return;
+
+            OnBeforeDraw();
+            DrawControl();
+            DrawWindow();
+            OnBeforeChildrenDraw();
+            DrawChildControls();
+            DrawBorder();
+            OnAfterDraw();
+        }
+        protected void DrawWindow()
+        {
+            if (InterfaceLibrary == null) return;
+
+            if (!WindowValid)
+            {
+                if (!WindowSurface.IsValid)
+                    throw new InvalidOperationException("Window surface is not available.");
+
+                RenderSurface oldSurface = RenderingPipelineManager.GetCurrentSurface();
+                RenderingPipelineManager.SetSurface(WindowSurface);
+                RenderingPipelineManager.Clear(RenderClearFlags.Target, Color.FromArgb(0), 0, 0);
+
+                DrawEdges();
+
+                RenderingPipelineManager.SetSurface(oldSurface);
+                WindowValid = true;
+            }
+
+            float oldOpacity = RenderingPipelineManager.GetOpacity();
+
+            if (DropShadow)
+            {
+                Rectangle displayArea = DisplayArea;
+                RectangleF shadowBounds = new RectangleF(displayArea.X, displayArea.Y, displayArea.Width, displayArea.Height);
+
+                RenderingPipelineManager.EnableDropShadowEffect(Color.Black, 8f, 0.5f, shadowBounds);
+            }
+
+            RenderingPipelineManager.SetOpacity(Opacity);
+            PresentTexture(WindowTexture, Parent, DisplayArea, ForeColour, this);
+
+            if (DropShadow)
+            {
+                RenderingPipelineManager.DisableSpriteShaderEffect();
+            }
+
+            RenderingPipelineManager.SetOpacity(oldOpacity);
+        }
+
+        private void DrawEdges()
+        {
+            Size s;
+
+            if (HasTopBorder)
+            {
+                s = InterfaceLibrary.GetSize(0);
+                InterfaceLibrary.Draw(0, 0, 0, Color.White, new Rectangle(0, 0, Size.Width, s.Height), 1f, ImageType.Image);
+            }
+            else
+            {
+                s = InterfaceLibrary.GetSize(2);
+                InterfaceLibrary.Draw(2, 0, 0, Color.White, new Rectangle(0, 0, Size.Width, s.Height), 1f, ImageType.Image);
+            }
+
+            int y = s.Height;
+
+            s = InterfaceLibrary.GetSize(1);
+            int x = s.Width;
+            InterfaceLibrary.Draw(1, 0, y, Color.White, new Rectangle(0, 0, s.Width, Size.Height - y), 1f, ImageType.Image);
+            InterfaceLibrary.Draw(1, Size.Width - s.Width, y, Color.White, new Rectangle(0, 0, s.Width, Size.Height - y), 1F, ImageType.Image);
+
+
+            if (HasTitle)
+            {
+                s = InterfaceLibrary.GetSize(3);
+                InterfaceLibrary.Draw(3, x, y, Color.White, new Rectangle(0, 0, Size.Width - x * 2, Size.Height), 1f, ImageType.Image);
+
+                y += s.Height;
+
+                InterfaceLibrary.Draw(4, 0, y - 3, Color.White, false, 1F, ImageType.Image);
+
+                s = InterfaceLibrary.GetSize(5);
+                InterfaceLibrary.Draw(5, Size.Width - s.Width, y - 3, Color.White, false, 1F, ImageType.Image);
+            }
+
+            if (HasTopBorder)
+            {
+                //2X Corner
+                InterfaceLibrary.Draw(11, 0, 0, Color.White, false, 1F, ImageType.Image);
+
+                s = InterfaceLibrary.GetSize(12);
+                InterfaceLibrary.Draw(12, Size.Width - s.Width, 0, Color.White, false, 1F, ImageType.Image);
+            }
+            else
+            {
+                //2X Corner
+                InterfaceLibrary.Draw(25, 0, 0, Color.White, false, 1F, ImageType.Image);
+
+                s = InterfaceLibrary.GetSize(26);
+                InterfaceLibrary.Draw(26, Size.Width - s.Width, 0, Color.White, false, 1F, ImageType.Image);
+            }
+
+            if (!HasFooter)
+            {
+                if (SlimFooter)
+                {
+                    s = InterfaceLibrary.GetSize(126);
+                    InterfaceLibrary.Draw(126, 0, Size.Height - s.Height, Color.White, new Rectangle(0, 0, Size.Width, s.Height), 1f, ImageType.Image);
+
+                    y = s.Height - 2; // Theres a 2 pixel blank space on this image
+
+                    s = InterfaceLibrary.GetSize(2);
+                    InterfaceLibrary.Draw(2, 0, Size.Height - s.Height - y, Color.White, new Rectangle(0, 0, Size.Width, s.Height), 1f, ImageType.Image);
+
+                    s = InterfaceLibrary.GetSize(8);
+                    InterfaceLibrary.Draw(8, 0, Size.Height - s.Height - y, Color.White, false, 1F, ImageType.Image);
+
+                    s = InterfaceLibrary.GetSize(9);
+                    InterfaceLibrary.Draw(9, Size.Width - s.Width, Size.Height - s.Height - y, Color.White, false, 1F, ImageType.Image);
+                }
+                else
+                {
+                    s = InterfaceLibrary.GetSize(2);
+                    InterfaceLibrary.Draw(2, 0, Size.Height - s.Height, Color.White, new Rectangle(0, 0, Size.Width, s.Height), 1f, ImageType.Image);
+
+                    s = InterfaceLibrary.GetSize(8);
+                    InterfaceLibrary.Draw(8, 0, Size.Height - s.Height, Color.White, false, 1F, ImageType.Image);
+
+                    s = InterfaceLibrary.GetSize(9);
+                    InterfaceLibrary.Draw(9, Size.Width - s.Width, Size.Height - s.Height, Color.White, false, 1F, ImageType.Image);
+                }
+            }
+            else
+            {
+                s = InterfaceLibrary.GetSize(126);
+                InterfaceLibrary.Draw(126, 0, Size.Height - s.Height, Color.White, new Rectangle(0, 0, Size.Width, s.Height), 1f, ImageType.Image);
+
+                y = s.Height;
+
+                s = InterfaceLibrary.GetSize(10);
+                InterfaceLibrary.Draw(10, x, Size.Height - s.Height - y, Color.White, new Rectangle(0, 0, Size.Width - x * 2, s.Height), 1f, ImageType.Image);
+
+                y += s.Height;
+
+                s = InterfaceLibrary.GetSize(2);
+                InterfaceLibrary.Draw(2, 0, Size.Height - y - s.Height, Color.White, new Rectangle(0, 0, Size.Width, s.Height), 1f, ImageType.Image);
+
+                y += s.Height;
+
+                s = InterfaceLibrary.GetSize(6);
+                InterfaceLibrary.Draw(6, 0, Size.Height - y - s.Height + 3, Color.White, false, 1F, ImageType.Image);
+
+                s = InterfaceLibrary.GetSize(7);
+                InterfaceLibrary.Draw(7, Size.Width - s.Width, Size.Height - y - s.Height + 3, Color.White, false, 1F, ImageType.Image);
+
+
+                //s = InterfaceLibrary.GetSize(13);
+                //InterfaceLibrary.Draw(13, 0, Size.Height - s.Height, Color.White, false, 1F, ImageType.Image);
+
+                //s = InterfaceLibrary.GetSize(14);
+                //InterfaceLibrary.Draw(14, Size.Width - s.Width, Size.Height - s.Height, Color.White, false, 1F, ImageType.Image);
+            }
+        }
+
+        public void LoadSettings()
+        {
+            if (Type == WindowType.None || !CEnvir.Loaded) return;
+
+            Settings = CEnvir.WindowSettings.Binding.FirstOrDefault(x => x.Resolution == Config.GameSize && x.Window == Type);
+
+            if (Settings != null)
+            {
+                ApplySettings();
+                return;
+            }
+
+            UpdateSettings();
+        }
+
+        public void UpdateSettings()
+        {
+            Settings ??= CEnvir.WindowSettings.CreateNewObject();
+
+            Settings.Resolution = Config.GameSize;
+            Settings.Window = Type;
+            Settings.Size = Size;
+            Settings.Visible = Visible;
+            Settings.Location = Location;
+        }
+
+        public virtual void ApplySettings()
+        {
+            if (Settings == null) return;
+
+            Location = Settings.Location;
+
+            if (AutomaticVisibility)
+                Visible = Settings.Visible;
+
+            if (CustomSize)
+                Size = Settings.Size;
+        }
+
+        #endregion
+
+        #region IDisposable
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+
+            if (disposing)
+            {
+                _HasTopBorder = false;
+                _HasTitle = false;
+                _HasFooter = false;
+                _ClientArea = Rectangle.Empty;
+
+                if (CloseButton != null)
+                {
+                    if (!CloseButton.IsDisposed)
+                        CloseButton.Dispose();
+                    CloseButton = null;
+                }
+
+                if (TitleLabel != null)
+                {
+                    if (!TitleLabel.IsDisposed)
+                        TitleLabel.Dispose();
+                    TitleLabel = null;
+                }
+
+                HasTopBorderChanged = null;
+                HasTitleChanged = null;
+                HasFooterChanged = null;
+                ClientAreaChanged = null;
+
+                ReleaseWindowRenderTarget();
+
+                WindowValid = false;
+                Settings = null;
+                Windows.Remove(this);
+
+            }
+        }
+        #endregion
+    }
+}

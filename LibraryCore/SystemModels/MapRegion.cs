@@ -1,0 +1,221 @@
+﻿using MirDB;
+using System.Collections;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Text.Json.Serialization;
+
+namespace Library.SystemModels
+{
+    public sealed class MapRegion : DBObject
+    {
+        [IsIdentity]
+        [Association("Regions")]
+        public MapInfo Map
+        {
+            get { return _Map; }
+            set
+            {
+                if (_Map == value) return;
+
+                var oldValue = _Map;
+                _Map = value;
+
+                OnChanged(oldValue, value, "Map");
+            }
+        }
+
+        [JsonIgnore]
+        [Association("SourceMovements", true)]
+        public DBBindingList<MovementInfo> SourceMovements { get; set; }
+
+        [JsonIgnore]
+        [Association("DestinationMovements", true)]
+        public DBBindingList<MovementInfo> DestinationMovements { get; set; }
+
+        [JsonIgnore]
+        [Association("RegionNPCs", true)]
+        public DBBindingList<NPCInfo> NPCs { get; set; }
+
+        [JsonIgnore]
+        [Association("RegionRespawns", true)]
+        public DBBindingList<RespawnInfo> Respawns { get; set; }
+
+        [JsonIgnore]
+        [Association("SafeZoneRegions", true)]
+        public DBBindingList<SafeZoneInfo> SafeZones { get; set; }
+
+        [JsonIgnore]
+        [Association("SafeZoneBindRegions", true)]
+        public DBBindingList<SafeZoneInfo> BindSafeZones { get; set; }
+
+        [JsonIgnore]
+        [Association("RegionQuestTasks", true)]
+        public DBBindingList<QuestTask> QuestTasks { get; set; }
+
+        private MapInfo _Map;
+
+        [IsIdentity]
+        public string Description
+        {
+            get { return _Description; }
+            set
+            {
+                if (_Description == value) return;
+
+                var oldValue = _Description;
+                _Description = value;
+
+                OnChanged(oldValue, value, "Description");
+            }
+        }
+        private string _Description;
+
+        [JsonIgnore]
+        public BitArray BitRegion
+        {
+            get { return _BitRegion; }
+            set
+            {
+                if (_BitRegion == value) return;
+
+                var oldValue = _BitRegion;
+                _BitRegion = value;
+
+                OnChanged(oldValue, value, "BitRegion");
+            }
+        }
+        private BitArray _BitRegion;
+
+        public Point[] PointRegion
+        {
+            get { return _PointRegion; }
+            set
+            {
+                if (_PointRegion == value) return;
+
+                var oldValue = _PointRegion;
+                _PointRegion = value;
+
+                OnChanged(oldValue, value, "PointRegion");
+            }
+        }
+        private Point[] _PointRegion;
+
+        [JsonIgnore]
+        [IgnoreProperty]
+        public string ServerDescription => $"{Map?.Description} ({Map?.FileName}) - {Description}";
+
+        public RegionType RegionType
+        {
+            get { return _RegionType; }
+            set
+            {
+                if (_RegionType == value) return;
+
+                var oldValue = _Size;
+                _RegionType = value;
+
+                OnChanged(oldValue, value, "RegionType");
+            }
+        }
+        private RegionType _RegionType;
+
+        public int Size
+        {
+            get { return _Size; }
+            set
+            {
+                if (_Size == value) return;
+
+                var oldValue = _Size;
+                _Size = value;
+
+                OnChanged(oldValue, value, "Size");
+            }
+        }
+        private int _Size;
+
+        [JsonIgnore]
+        public List<Point> PointList;
+
+        [JsonIgnore]
+        public List<Point> EdgePointList;
+
+        public HashSet<Point> GetPoints(int width)
+        {
+            HashSet<Point> points = new HashSet<Point>();
+
+            if (BitRegion != null)
+            {
+                for (int i = 0; i < BitRegion.Length; i++)
+                {
+                    if (BitRegion[i])
+                        points.Add(new Point(i % width, i / width));
+                }
+            }
+            else if (PointRegion != null)
+            {
+                foreach (Point p in PointRegion)
+                    points.Add(p);
+            }
+
+            return points;
+        }
+        public void CreatePoints(int width)
+        {
+            PointList = new List<Point>();
+            EdgePointList = new List<Point>();
+
+            if (BitRegion != null)
+            {
+                if (width == 0) return;
+
+                for (int i = 0; i < BitRegion.Length; i++)
+                {
+                    if (BitRegion[i])
+                        PointList.Add(new Point(i % width, i / width));
+                }
+            }
+            else if (PointRegion != null)
+            {
+                foreach (Point p in PointRegion)
+                    PointList.Add(p);
+            }
+
+            CreateEdgePoints();
+        }
+        public void CreateEdgePoints()
+        {
+            EdgePointList = new List<Point>();
+
+            if (PointList == null || PointList.Count == 0) return;
+
+            HashSet<Point> points = new HashSet<Point>(PointList);
+
+            foreach (Point point in PointList)
+            {
+                bool edge = false;
+
+                for (int y = -1; y <= 1 && !edge; y++)
+                {
+                    for (int x = -1; x <= 1; x++)
+                    {
+                        if (x == 0 && y == 0) continue;
+                        if (points.Contains(new Point(point.X + x, point.Y + y))) continue;
+
+                        edge = true;
+                        break;
+                    }
+                }
+
+                if (edge)
+                    EdgePointList.Add(point);
+            }
+        }
+
+        public override string ToString()
+        {
+            return $"{Map?.Description} - {Description}";
+        }
+    }
+}
