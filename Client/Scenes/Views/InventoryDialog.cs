@@ -20,7 +20,7 @@ namespace Client.Scenes.Views
         public DXItemGrid Grid;
 
         public DXLabel PrimaryCurrencyLabel, SecondaryCurrencyLabel, WeightLabel, WalletLabel, PrimaryCurrencyTitle, SecondaryCurrencyTitle;
-        public DXButton SortButton, TrashButton, SellButton;
+        public DXButton SortButton, TrashButton, TrashIconButton, SellButton;
         public DXButton UndoDeleteButton;
         public bool DeleteEnabled { get; private set; }
         private int recycleCount;
@@ -156,7 +156,7 @@ namespace Client.Scenes.Views
             }
 
             int footerY = Grid.Location.Y + Grid.Size.Height + 12;
-            Size = new Size(Grid.Size.Width + 40, footerY + 96);
+            Size = new Size(Grid.Size.Width + 40, footerY + 126);
             CEnvir.LibraryList.TryGetValue(LibraryFile.GameInter, out MirLibrary library);
 
             DXControl WeightBar = new DXControl
@@ -253,22 +253,32 @@ namespace Client.Scenes.Views
             };
             SortButton.MouseClick += SortButton_MouseClick;
 
+            TrashIconButton = new DXButton
+            {
+                LibraryFile = LibraryFile.GameInter,
+                Index = 358,
+                Parent = this,
+                Location = new Point(Size.Width - 60, footerY + 78),
+                Hint = CEnvir.Language.InventoryDialogTrashButtonHint
+            };
+            TrashIconButton.MouseClick += TrashIconButton_MouseClick;
+
             TrashButton = new DXButton
             {
                 ButtonType = ButtonType.SmallButton,
                 Parent = this,
                 Size = new Size(120, SmallButtonHeight),
                 Location = new Point(Size.Width - 140, footerY + 34),
-                Label = { Text = "DEL: WYŁ.", ForeColour = Color.LightGreen },
-                Hint = "Bezpiecznik DEL. Kliknij, aby włączyć lub wyłączyć usuwanie pod kursorem."
+                Label = { Text = "DEL: OFF", ForeColour = Color.LightGreen },
+                Hint = "DELETE safety. Click to enable or disable deleting the item under the cursor."
             };
             TrashButton.MouseClick += TrashButton_MouseClick;
             UndoDeleteButton = new DXButton
             {
                 Parent = this, ButtonType = ButtonType.SmallButton, Size = new Size(120, SmallButtonHeight),
                 Location = new Point(Size.Width - 140, footerY + 58),
-                Label = { Text = "Cofnij" }, Visible = false,
-                Hint = "Odzyskaj ostatni usunięty przedmiot. Każdy przedmiot można odzyskać przez 45 sekund."
+                Label = { Text = "Undo" }, Visible = false,
+                Hint = "Recover the last deleted item. Each item can be recovered for 45 seconds."
             };
             UndoDeleteButton.MouseClick += (o,e) => { if (e.Button == MouseButtons.Left && !GameScene.Game.Observer) CEnvir.Enqueue(new C.ItemRecover()); };
 
@@ -347,8 +357,18 @@ namespace Client.Scenes.Views
         {
             if (e.Button != MouseButtons.Left || GameScene.Game.Observer) return;
             DeleteEnabled = !DeleteEnabled;
-            TrashButton.Label.Text = DeleteEnabled ? "DEL: AKTYWNY" : "DEL: WYŁ.";
+            TrashButton.Label.Text = DeleteEnabled ? "DEL: ON" : "DEL: OFF";
             TrashButton.Label.ForeColour = DeleteEnabled ? Color.OrangeRed : Color.LightGreen;
+        }
+
+        private void TrashIconButton_MouseClick(object sender, MouseEventArgs e)
+        {
+            if (e.Button != MouseButtons.Left || GameScene.Game.Observer) return;
+
+            DXItemCell cell = MouseControl as DXItemCell ?? DXItemCell.SelectedCell;
+            if (cell == null) return;
+
+            DeleteItem(cell);
         }
 
         public void UpdateRecycleState(int count, int seconds)
@@ -356,8 +376,8 @@ namespace Client.Scenes.Views
             recycleCount = count;
             UndoDeleteButton.Visible = count > 0 && InvMode == InventoryMode.Normal;
             UndoDeleteButton.Enabled = seconds > 0;
-            UndoDeleteButton.Label.Text = $"Cofnij ({seconds}s)";
-            UndoDeleteButton.Hint = $"Do odzyskania: {count}. Kliknij, aby przywrócić ostatni. Każdy znika po 45 sekundach.";
+            UndoDeleteButton.Label.Text = $"Undo ({seconds}s)";
+            UndoDeleteButton.Hint = $"To recover: {count}. Click to restore the last one. Each disappears after 45 seconds."
         }
 
         private void DeleteItem(DXItemCell cell)
@@ -571,6 +591,7 @@ namespace Client.Scenes.Views
         public void OnInventoryModeChanged(InventoryMode oValue, InventoryMode nValue)
         {
             TrashButton.Visible = false;
+            TrashIconButton.Visible = false;
             UndoDeleteButton.Visible = false;
             SellButton.Visible = false;
 
@@ -583,6 +604,7 @@ namespace Client.Scenes.Views
                         RefreshCurrency();
 
                         TrashButton.Visible = true;
+                        TrashIconButton.Visible = true;
                         UndoDeleteButton.Visible = recycleCount > 0;
 
                         TitleLabel.Text = CEnvir.Language.InventoryDialogTitle + $" ({Globals.InventorySize})";
@@ -696,6 +718,14 @@ namespace Client.Scenes.Views
                         SortButton.Dispose();
 
                     SortButton = null;
+                }
+
+                if (TrashIconButton != null)
+                {
+                    if (!TrashIconButton.IsDisposed)
+                        TrashIconButton.Dispose();
+
+                    TrashIconButton = null;
                 }
 
                 if (TrashButton != null)
