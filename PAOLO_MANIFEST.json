@@ -34,8 +34,8 @@
       }
     ],
     "how_to_apply": "Option A (PRIMARY, verified): git fetch <magus-repo> paolo-merge && git merge FETCH_HEAD on Paolo's base (4cc883d + 10 uncommitted files). The branch tip = exactly 1 commit above 4cc883d whose TREE is the full Magus main (all mods + fixes + pet features + this manifest). Option B (convenience, on demand): ask MAGUS to regenerate a patch from main and git am -3 it onto 4cc883d. NOTE: a patch cannot reproduce the tree 100% because it cannot contain itself nor the manifest that describes it, so the branch is the canonical, verifiable path.",
-    "patch_file": "merge-kit/MIR3-magus-final.patch (final; delivered in scratch, NOT stored in-repo to avoid self-reference)",
-    "patch_note": "A stored patch is inherently self-referential: it cannot include itself, and the manifest references it, so a `git am` of the patch yields a tree that differs from main by the manifest/patch files. The paolo-merge branch is therefore the single source of truth."
+    "patch_file": "ON-DEMAND — not stored in-repo. A stored patch is self-referential (cannot contain itself nor this manifest), so `git am` can never yield a tree identical to main. Ask MAGUS to regenerate `git diff 4cc883d <main-tip> --binary` and apply it; it covers all gameplay changes.",
+    "patch_note": "The paolo-merge BRANCH is the single source of truth: its tip tree is byte-identical to main (verified). A patch is a convenience fallback only, regenerated on request."
   },
   "counts": {
     "magus_files": 312,
