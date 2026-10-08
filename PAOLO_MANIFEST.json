@@ -24,7 +24,8 @@
   },
   "merge_kit": {
     "branch": "paolo-merge",
-    "branch_head": "",
+    "branch_head": "7134825",
+    "branch_head_note": "7134825 = anchor kodowy (fix srednika). Tip gałęzi jest za nim o commity docs — bot MERGUJE TIP gałęzi (git fetch <repo> paolo-merge && git merge FETCH_HEAD), nie ten hash.",
     "composition": "4cc883d + Paolo's 10 uncommitted changes + Magus full main + inventory fix",
     "conflicts_resolved": [
       {
