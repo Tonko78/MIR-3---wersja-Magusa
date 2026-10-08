@@ -1,0 +1,2226 @@
+{
+  "schema": "magusa-paolo-merge/2",
+  "generated_utc": "2026-10-08",
+  "generated_by": "HADES (Hermes Agent) for MAGUS",
+  "intent": "Magus's changes are a fork MIDWAY through Paolo's server build. This manifest lets Paolo's bot (a) see exactly which files are Magus's mods, and (b) skip the Windows-only infra + the portal/pipeline Paolo already owns, so it imports only the server-side gameplay value.",
+  "provenance": {
+    "upstream": "Suprcode/Zircon",
+    "paolo_base_commit": "4cc883d (Fixes for render swapping, 2026-09-21)",
+    "paolo_uncommitted_changes": [
+      "Client/Envir/CEnvir.cs",
+      "Client/Properties/Resources.resx",
+      "LibraryCore/MirDB/Session.cs",
+      "ServerCore/Program.cs",
+      "ServerLibrary/Envir/Config.cs",
+      "ServerLibrary/Envir/SConnection.cs",
+      "ServerLibrary/Envir/SEnvir.cs",
+      "ServerLibrary/Envir/Translations/ChineseMessages.cs",
+      "ServerLibrary/Envir/Translations/EnglishMessages.cs",
+      "ServerCore/ServerDataInitializer.cs"
+    ],
+    "magus_fork_base": "a051c34 (guild label fixes, 2026-09-27) — 5 Zircon commits AHEAD of Paolo's base",
+    "relation": "4cc883d IS an ancestor of Magus main — one tree, not divergent branches",
+    "magus_main_tip": "f19f22f (incl. inventory dialog fix)"
+  },
+  "merge_kit": {
+    "branch": "paolo-merge",
+    "branch_head": "1d53d9f",
+    "composition": "4cc883d + Paolo's 10 uncommitted changes + Magus full main + inventory fix",
+    "conflicts_resolved": [
+      {
+        "file": "ServerCore/Program.cs",
+        "resolution": "union of using directives (System.IO + System.Threading + System.Threading.Tasks)"
+      }
+    ],
+    "how_to_apply": "Option A: `git fetch <magus-repo> paolo-merge && git merge FETCH_HEAD` on Paolo's 4cc883d+10. Option B: `git am -3 paolo-merge.patch`.",
+    "patch_file": "paolo-merge.patch"
+  },
+  "counts": {
+    "magus_files": 311,
+    "core_needed": 52,
+    "tests_optional": 49,
+    "supporting": 10,
+    "redundant_paolo_own": 140,
+    "not_needed_windows": 54,
+    "misc": 6
+  },
+  "files": [
+    {
+      "path": ".config/dotnet-tools.json",
+      "status": "added",
+      "tier": "misc",
+      "feature": "",
+      "why": "Root config/docs. Review individually."
+    },
+    {
+      "path": ".gitignore",
+      "status": "modified",
+      "tier": "misc",
+      "feature": "",
+      "why": "Root config/docs. Review individually."
+    },
+    {
+      "path": "AccountPortal.Contracts.Tests/AccountCommandSignerTests.cs",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "AccountPortal contracts (portal<->server API)",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "AccountPortal.Contracts.Tests/AccountPortal.Contracts.Tests.csproj",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "AccountPortal contracts (portal<->server API)",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "AccountPortal.Contracts/AccountCommand.cs",
+      "status": "added",
+      "tier": "core_needed",
+      "feature": "AccountPortal contracts (portal<->server API)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "AccountPortal.Contracts/AccountCommandResult.cs",
+      "status": "added",
+      "tier": "core_needed",
+      "feature": "AccountPortal contracts (portal<->server API)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "AccountPortal.Contracts/AccountCommandSigner.cs",
+      "status": "added",
+      "tier": "core_needed",
+      "feature": "AccountPortal contracts (portal<->server API)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "AccountPortal.Contracts/AccountCommandStatus.cs",
+      "status": "added",
+      "tier": "core_needed",
+      "feature": "AccountPortal contracts (portal<->server API)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "AccountPortal.Contracts/AccountCommandType.cs",
+      "status": "added",
+      "tier": "core_needed",
+      "feature": "AccountPortal contracts (portal<->server API)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "AccountPortal.Contracts/AccountPortal.Contracts.csproj",
+      "status": "added",
+      "tier": "core_needed",
+      "feature": "AccountPortal contracts (portal<->server API)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "CHANGELOG.md",
+      "status": "added",
+      "tier": "misc",
+      "feature": "",
+      "why": "Root config/docs. Review individually."
+    },
+    {
+      "path": "Client/Controls/DXCheckedComboBox.cs",
+      "status": "deleted",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Client/Controls/DXComboBox.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Client/Controls/DXConfigWindow.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Client/Controls/DXTextBox.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Client/Envir/CConnection.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Client/Envir/CEnvir.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Client/Envir/Config.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Client/Envir/LoginDetailsStore.cs",
+      "status": "added",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Client/Envir/Translations/ChineseMessages.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Client/Envir/Translations/EnglishMessages.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Client/Envir/Translations/StringMessages.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Client/Models/ItemObject.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Client/Models/UserObject.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Client/Program.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Client/Properties/Resources.resx",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Client/Scenes/GameScene.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Client/Scenes/LoginScene.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Client/Scenes/Views/CompanionDialog.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Client/Scenes/Views/GroupDialog.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Client/Scenes/Views/GroupLootDialogs.cs",
+      "status": "deleted",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Client/Scenes/Views/GuildDialog.Fragments.cs",
+      "status": "added",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Client/Scenes/Views/GuildDialog.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Client/Scenes/Views/InventoryDialog.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Client/Scenes/Views/MapControl.Loot.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Client/Scenes/Views/MapControl.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Client/TargetForm.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Launcher.Core.Tests/Launcher.Core.Tests.csproj",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Launcher.Core.Tests/PatchManifestTests.cs",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Launcher.Core.Tests/PatchOriginTests.cs",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Launcher.Core.Tests/PatchPathsTests.cs",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Launcher.Core.Tests/PatchPayloadTests.cs",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Launcher.Core.Tests/packages.lock.json",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Launcher.Core/Launcher.Core.csproj",
+      "status": "added",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Launcher.Core/PatchManifest.cs",
+      "status": "added",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Launcher.Core/PatchOrigin.cs",
+      "status": "added",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Launcher.Core/PatchPaths.cs",
+      "status": "added",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Launcher.Core/PatchPayload.cs",
+      "status": "added",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Launcher/Config.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Launcher/LMain.Designer.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Launcher/LMain.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Launcher/Launcher.csproj",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Launcher/PatchInformation.cs",
+      "status": "deleted",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Launcher/Program.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Launcher/Properties/Resources.Designer.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Launcher/Properties/Resources.resx",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Launcher/Resources/Patcher.exe",
+      "status": "deleted",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "LibraryCore/Enum.cs",
+      "status": "modified",
+      "tier": "core_needed",
+      "feature": "Shared core (Enum, Globals, MirDB/Session, Network packets)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "LibraryCore/Globals.cs",
+      "status": "modified",
+      "tier": "core_needed",
+      "feature": "Shared core (Enum, Globals, MirDB/Session, Network packets)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "LibraryCore/MirDB/Session.cs",
+      "status": "modified",
+      "tier": "core_needed",
+      "feature": "Shared core (Enum, Globals, MirDB/Session, Network packets)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "LibraryCore/Network/ClientPackets.cs",
+      "status": "modified",
+      "tier": "core_needed",
+      "feature": "Shared core (Enum, Globals, MirDB/Session, Network packets)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "LibraryCore/Network/ServerPackets.cs",
+      "status": "modified",
+      "tier": "core_needed",
+      "feature": "Shared core (Enum, Globals, MirDB/Session, Network packets)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "LibraryEditor/ProgressDialog.Designer.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "LibraryEditor/ProgressDialog.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "MERGE_GUIDE.md",
+      "status": "added",
+      "tier": "misc",
+      "feature": "",
+      "why": "Root config/docs. Review individually."
+    },
+    {
+      "path": "Mir3.Web.FdZeroProbe/Mir3.Web.FdZeroProbe.csproj",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web.FdZeroProbe/Program.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web.FdZeroProbe/packages.lock.json",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web.Tests/AccountQueueClientTests.cs",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Mir3.Web.Tests/AdminAuthorizationTests.cs",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Mir3.Web.Tests/AdminPortalServiceTests.cs",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Mir3.Web.Tests/DownloadRangeTests.cs",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Mir3.Web.Tests/EmailVerificationServiceTests.cs",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Mir3.Web.Tests/GamePasswordHasherTests.cs",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Mir3.Web.Tests/LocalizationTests.cs",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Mir3.Web.Tests/Mir3.Web.Tests.csproj",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Mir3.Web.Tests/PatchStaticFilesTests.cs",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Mir3.Web.Tests/PortalPersistenceTests.cs",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Mir3.Web.Tests/PublicPageLocalizationTests.cs",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Mir3.Web.Tests/PublicationConfigurationTests.cs",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Mir3.Web.Tests/RegistrationServiceTests.cs",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Mir3.Web.Tests/RegistrationStateMachineTests.cs",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Mir3.Web.Tests/SmtpEmailSenderTests.cs",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Mir3.Web.Tests/StatusPageTests.cs",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Mir3.Web.Tests/VerificationTokenServiceTests.cs",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Mir3.Web.Tests/VerificationTransportLockManagerTests.cs",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Mir3.Web.Tests/packages.lock.json",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Mir3.Web/Data/PortalDbContext.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Data/PortalDbInitializer.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Domain/AdminUser.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Domain/AuditEntry.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Domain/PortalSetting.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Domain/QueuePublicationState.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Domain/Registration.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Domain/RegistrationStatus.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Localization/PortalText.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Migrations/20260923054743_InitialPortalSchema.Designer.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Migrations/20260923054743_InitialPortalSchema.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Migrations/20260923071421_AddQueueCommandType.Designer.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Migrations/20260923071421_AddQueueCommandType.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Migrations/20260923073831_AddQueueLastCheckedUtc.Designer.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Migrations/20260923073831_AddQueueLastCheckedUtc.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Migrations/20260923125407_AddEmailDeliveryState.Designer.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Migrations/20260923125407_AddEmailDeliveryState.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Migrations/20260923173000_AddEmailDeliveryOwnership.Designer.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Migrations/20260923173000_AddEmailDeliveryOwnership.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Migrations/20260924051507_AddRegistrationOutboxState.Designer.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Migrations/20260924051507_AddRegistrationOutboxState.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Migrations/20260925124915_AddPendingPasswordHash.Designer.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Migrations/20260925124915_AddPendingPasswordHash.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Migrations/20260930001545_AddRegistrationPreferredLanguage.Designer.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Migrations/20260930001545_AddRegistrationPreferredLanguage.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Migrations/PortalDbContextModelSnapshot.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Mir3.Web.csproj",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Options/DownloadOptions.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Options/PatchOptions.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Options/QueueOptions.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Options/SmtpOptions.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Options/TrustedProxyConfiguration.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Pages/Admin/Index.cshtml",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Pages/Admin/Index.cshtml.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Pages/Admin/Login.cshtml",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Pages/Admin/Login.cshtml.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Pages/Admin/Settings.cshtml",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Pages/Admin/Settings.cshtml.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Pages/Download.cshtml",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Pages/Download.cshtml.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Pages/Error.cshtml",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Pages/Error.cshtml.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Pages/Index.cshtml",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Pages/Index.cshtml.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Pages/Privacy.cshtml",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Pages/Privacy.cshtml.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Pages/Register.cshtml",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Pages/Register.cshtml.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Pages/Shared/_Layout.cshtml",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Pages/Shared/_Layout.cshtml.css",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Pages/Shared/_ValidationScriptsPartial.cshtml",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Pages/Status.cshtml",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Pages/Status.cshtml.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Pages/Verify.cshtml",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Pages/Verify.cshtml.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Pages/_ViewImports.cshtml",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Pages/_ViewStart.cshtml",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Program.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Properties/AssemblyInfo.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Properties/launchSettings.json",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Security/AdminAuthentication.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Security/GamePasswordHasher.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Security/VerificationTokenService.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Services/AccountQueueClient.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Services/AccountQueueResultWorker.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Services/AdminPortalService.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Services/DownloadArtifactCatalog.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Services/DownloadMetadataService.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Services/EmailVerificationService.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Services/IEmailSender.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Services/MailKitSmtpClient.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Services/RegistrationOutboxProcessor.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Services/RegistrationService.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Services/RegistrationStateMachine.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Services/SafeAccountQueueResultFile.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Services/SafeUnixFileDescriptor.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Services/SmtpEmailSender.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/Services/VerificationTransportLockManager.cs",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/appsettings.Development.json",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/appsettings.json",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/packages.lock.json",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/css/site.css",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/favicon.ico",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/images/mir3-gameplay-screen.png",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/images/mir3-login-screen.png",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/js/site.js",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/bootstrap/LICENSE",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/bootstrap/dist/css/bootstrap-grid.css",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/bootstrap/dist/css/bootstrap-grid.min.css",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/bootstrap/dist/css/bootstrap-grid.rtl.css",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/bootstrap/dist/css/bootstrap-grid.rtl.min.css",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/bootstrap/dist/css/bootstrap-reboot.css",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/bootstrap/dist/css/bootstrap-reboot.min.css",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/bootstrap/dist/css/bootstrap-reboot.rtl.css",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/bootstrap/dist/css/bootstrap-reboot.rtl.min.css",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/bootstrap/dist/css/bootstrap-utilities.css",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/bootstrap/dist/css/bootstrap-utilities.min.css",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/bootstrap/dist/css/bootstrap-utilities.rtl.css",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/bootstrap/dist/css/bootstrap-utilities.rtl.min.css",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/bootstrap/dist/css/bootstrap.css",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/bootstrap/dist/css/bootstrap.min.css",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/bootstrap/dist/css/bootstrap.rtl.css",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/bootstrap/dist/css/bootstrap.rtl.min.css",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/bootstrap/dist/js/bootstrap.bundle.js",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/bootstrap/dist/js/bootstrap.bundle.min.js",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/bootstrap/dist/js/bootstrap.esm.js",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/bootstrap/dist/js/bootstrap.esm.min.js",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/bootstrap/dist/js/bootstrap.js",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/bootstrap/dist/js/bootstrap.min.js",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/jquery-validation-unobtrusive/LICENSE.txt",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.js",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.min.js",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/jquery-validation/LICENSE.md",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/jquery-validation/dist/additional-methods.js",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/jquery-validation/dist/additional-methods.min.js",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/jquery-validation/dist/jquery.validate.js",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/jquery-validation/dist/jquery.validate.min.js",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/jquery/LICENSE.txt",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/jquery/dist/jquery.js",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/jquery/dist/jquery.min.js",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/jquery/dist/jquery.slim.js",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "Mir3.Web/wwwroot/lib/jquery/dist/jquery.slim.min.js",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "PatchManager/Config.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "PatchManager/PMain.Designer.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "PatchManager/PMain.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "PatchManager/PatchInformation.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "PatchManager/PatchManager.csproj",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Patcher/Patcher.csproj",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Patcher/Program.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "README.md",
+      "status": "modified",
+      "tier": "misc",
+      "feature": "",
+      "why": "Root config/docs. Review individually."
+    },
+    {
+      "path": "RenderingCore/Rendering/RenderingPipelineManager.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "RenderingCore/Rendering/SilkD3D11/SilkD3D11RenderingPipeline.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "RenderingCore/Rendering/SilkVulkan/SilkVulcanRenderingPipeline.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Server/Views/ConfigView.Designer.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "Server/Views/ConfigView.cs",
+      "status": "modified",
+      "tier": "not_needed_windows",
+      "feature": "",
+      "why": "Windows-only: client/launcher/patcher/rendering/editor/GUI. Paolo has his own client + runs Linux."
+    },
+    {
+      "path": "ServerCore.Tests/AccountQueue/AccountCommandExecutorTests.cs",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "ServerCore.Tests/AccountQueue/AccountCommandProcessorTests.cs",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "ServerCore.Tests/AccountQueue/AccountQueueRuntimeTests.cs",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "ServerCore.Tests/AccountQueue/SafeQueueFileTests.cs",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "ServerCore.Tests/ServerCore.Tests.csproj",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "ServerCore/AccountQueue/AccountCommandExecutor.cs",
+      "status": "added",
+      "tier": "core_needed",
+      "feature": "AccountQueue (durable account queue, HMAC)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerCore/AccountQueue/AccountCommandProcessor.cs",
+      "status": "added",
+      "tier": "core_needed",
+      "feature": "AccountQueue (durable account queue, HMAC)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerCore/AccountQueue/AccountQueueRuntime.cs",
+      "status": "added",
+      "tier": "core_needed",
+      "feature": "AccountQueue (durable account queue, HMAC)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerCore/AccountQueue/IAccountCommandExecutor.cs",
+      "status": "added",
+      "tier": "core_needed",
+      "feature": "AccountQueue (durable account queue, HMAC)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerCore/AccountQueue/IQueueDurability.cs",
+      "status": "added",
+      "tier": "core_needed",
+      "feature": "AccountQueue (durable account queue, HMAC)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerCore/AccountQueue/MirDbAccountDirectory.cs",
+      "status": "added",
+      "tier": "core_needed",
+      "feature": "AccountQueue (durable account queue, HMAC)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerCore/AccountQueue/QueueDurability.cs",
+      "status": "added",
+      "tier": "core_needed",
+      "feature": "AccountQueue (durable account queue, HMAC)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerCore/AccountQueue/QueuePaths.cs",
+      "status": "added",
+      "tier": "core_needed",
+      "feature": "AccountQueue (durable account queue, HMAC)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerCore/AccountQueue/SafeQueueFile.cs",
+      "status": "added",
+      "tier": "core_needed",
+      "feature": "AccountQueue (durable account queue, HMAC)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerCore/Program.cs",
+      "status": "modified",
+      "tier": "core_needed",
+      "feature": "",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerCore/ServerCore.csproj",
+      "status": "modified",
+      "tier": "core_needed",
+      "feature": "",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerCore/ServerDataInitializer.cs",
+      "status": "added",
+      "tier": "core_needed",
+      "feature": "ServerDataInitializer (default currencies)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/DBModels/CharacterInfo.cs",
+      "status": "modified",
+      "tier": "core_needed",
+      "feature": "DB models (CharacterInfo, GuildInfo, UserItem)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/DBModels/GuildInfo.cs",
+      "status": "modified",
+      "tier": "core_needed",
+      "feature": "DB models (CharacterInfo, GuildInfo, UserItem)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/DBModels/UserCombatPet.cs",
+      "status": "added",
+      "tier": "core_needed",
+      "feature": "Combat pets (DB)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/DBModels/UserItem.cs",
+      "status": "modified",
+      "tier": "core_needed",
+      "feature": "DB models (CharacterInfo, GuildInfo, UserItem)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/Envir/Commands/AdminCommandHandler.cs",
+      "status": "modified",
+      "tier": "core_needed",
+      "feature": "Server envir (Config, SConnection, SEnvir, AdminCommandHandler, Translations)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/Envir/Commands/Command/Admin/ClearBag.cs",
+      "status": "deleted",
+      "tier": "core_needed",
+      "feature": "Server envir (Config, SConnection, SEnvir, AdminCommandHandler, Translations)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/Envir/Config.cs",
+      "status": "modified",
+      "tier": "core_needed",
+      "feature": "Server envir (Config, SConnection, SEnvir, AdminCommandHandler, Translations)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/Envir/SConnection.cs",
+      "status": "modified",
+      "tier": "core_needed",
+      "feature": "Server envir (Config, SConnection, SEnvir, AdminCommandHandler, Translations)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/Envir/SEnvir.cs",
+      "status": "modified",
+      "tier": "core_needed",
+      "feature": "Server envir (Config, SConnection, SEnvir, AdminCommandHandler, Translations)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/Envir/Translations/ChineseMessages.cs",
+      "status": "modified",
+      "tier": "core_needed",
+      "feature": "Server envir (Config, SConnection, SEnvir, AdminCommandHandler, Translations)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/Envir/Translations/EnglishMessages.cs",
+      "status": "modified",
+      "tier": "core_needed",
+      "feature": "Server envir (Config, SConnection, SEnvir, AdminCommandHandler, Translations)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/Models/CombatPetSettings.cs",
+      "status": "added",
+      "tier": "core_needed",
+      "feature": "Combat pets (config)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/Models/GuildFragmentStorage.cs",
+      "status": "added",
+      "tier": "core_needed",
+      "feature": "Guild fragment storage",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/Models/ItemObject.cs",
+      "status": "modified",
+      "tier": "core_needed",
+      "feature": "",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/Models/Magics/Taoist/SummonDead.cs",
+      "status": "modified",
+      "tier": "core_needed",
+      "feature": "Combat-pet summon magics (Taoist/Wizard)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/Models/Magics/Taoist/SummonDemonicCreature.cs",
+      "status": "modified",
+      "tier": "core_needed",
+      "feature": "Combat-pet summon magics (Taoist/Wizard)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/Models/Magics/Taoist/SummonJinSkeleton.cs",
+      "status": "modified",
+      "tier": "core_needed",
+      "feature": "Combat-pet summon magics (Taoist/Wizard)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/Models/Magics/Taoist/SummonShinsu.cs",
+      "status": "modified",
+      "tier": "core_needed",
+      "feature": "Combat-pet summon magics (Taoist/Wizard)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/Models/Magics/Taoist/SummonSkeleton.cs",
+      "status": "modified",
+      "tier": "core_needed",
+      "feature": "Combat-pet summon magics (Taoist/Wizard)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/Models/Magics/Wizard/ElectricShock.cs",
+      "status": "modified",
+      "tier": "core_needed",
+      "feature": "Combat-pet summon magics (Taoist/Wizard)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/Models/MonsterObject.CombatPets.cs",
+      "status": "added",
+      "tier": "core_needed",
+      "feature": "Combat pets (monster)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/Models/MonsterObject.cs",
+      "status": "modified",
+      "tier": "core_needed",
+      "feature": "",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/Models/Monsters/Companion.cs",
+      "status": "modified",
+      "tier": "core_needed",
+      "feature": "",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/Models/Monsters/VoraciousGhost.cs",
+      "status": "modified",
+      "tier": "core_needed",
+      "feature": "",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/Models/PlayerObject.CombatPets.cs",
+      "status": "added",
+      "tier": "core_needed",
+      "feature": "Combat pets (player)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/Models/PlayerObject.GroupLoot.cs",
+      "status": "deleted",
+      "tier": "core_needed",
+      "feature": "",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/Models/PlayerObject.GuildFragments.cs",
+      "status": "added",
+      "tier": "core_needed",
+      "feature": "Guild fragments (player)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/Models/PlayerObject.Recycle.cs",
+      "status": "added",
+      "tier": "core_needed",
+      "feature": "Recycle (item recycling)",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "ServerLibrary/Models/PlayerObject.cs",
+      "status": "modified",
+      "tier": "core_needed",
+      "feature": "",
+      "why": "Server-side gameplay mod (net10.0 cross-platform). This is the value Paolo needs."
+    },
+    {
+      "path": "Tests/CombatPetChecks/CombatPetChecks.csproj",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Tests/CombatPetChecks/Program.cs",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Tests/CombatPetChecks/README.md",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Tests/GuildFragmentChecks/GuildFragmentChecks.csproj",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Tests/GuildFragmentChecks/Program.cs",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Tests/GuildFragmentChecks/README.md",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Tests/ops/test-build-client-zip.py",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Tests/ops/test-create-patch.py",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Tests/ops/test-installer-contract.py",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Tests/ops/test-mir3-web-deployment.sh",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Tests/ops/test-package-client.py",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Tests/ops/test-patch-origin.py",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Tests/ops/test-public-defaults.py",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Tests/ops/test-publication-input.py",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Tests/ops/test-publish-patch.py",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Tests/ops/verify-mir3-web-assets.sh",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Tests/publication/test_publication.py",
+      "status": "added",
+      "tier": "tests_optional",
+      "feature": "",
+      "why": "Cross-platform test suite (net10.0). Useful for Paolo to verify his Linux build."
+    },
+    {
+      "path": "Zircon Server.sln",
+      "status": "modified",
+      "tier": "misc",
+      "feature": "",
+      "why": "Root config/docs. Review individually."
+    },
+    {
+      "path": "data/README.md",
+      "status": "added",
+      "tier": "supporting",
+      "feature": "",
+      "why": "Docs / seed data (System.db 80 collections, 26348 records). Optional."
+    },
+    {
+      "path": "data/System.db",
+      "status": "added",
+      "tier": "supporting",
+      "feature": "",
+      "why": "Docs / seed data (System.db 80 collections, 26348 records). Optional."
+    },
+    {
+      "path": "docs/DATA_MODEL.md",
+      "status": "modified",
+      "tier": "supporting",
+      "feature": "",
+      "why": "Docs / seed data (System.db 80 collections, 26348 records). Optional."
+    },
+    {
+      "path": "docs/MAGUSA_VERIFICATION.md",
+      "status": "added",
+      "tier": "supporting",
+      "feature": "",
+      "why": "Docs / seed data (System.db 80 collections, 26348 records). Optional."
+    },
+    {
+      "path": "docs/NETWORKING.md",
+      "status": "modified",
+      "tier": "supporting",
+      "feature": "",
+      "why": "Docs / seed data (System.db 80 collections, 26348 records). Optional."
+    },
+    {
+      "path": "docs/SERVER_RUNTIME.md",
+      "status": "modified",
+      "tier": "supporting",
+      "feature": "",
+      "why": "Docs / seed data (System.db 80 collections, 26348 records). Optional."
+    },
+    {
+      "path": "docs/VERIFICATION.md",
+      "status": "modified",
+      "tier": "supporting",
+      "feature": "",
+      "why": "Docs / seed data (System.db 80 collections, 26348 records). Optional."
+    },
+    {
+      "path": "docs/gameplay/COMBAT_AND_MAGIC.md",
+      "status": "modified",
+      "tier": "supporting",
+      "feature": "",
+      "why": "Docs / seed data (System.db 80 collections, 26348 records). Optional."
+    },
+    {
+      "path": "docs/gameplay/ITEMS_AND_ECONOMY.md",
+      "status": "modified",
+      "tier": "supporting",
+      "feature": "",
+      "why": "Docs / seed data (System.db 80 collections, 26348 records). Optional."
+    },
+    {
+      "path": "docs/gameplay/SOCIAL_AND_GROUPS.md",
+      "status": "modified",
+      "tier": "supporting",
+      "feature": "",
+      "why": "Docs / seed data (System.db 80 collections, 26348 records). Optional."
+    },
+    {
+      "path": "ops/mir3-web/INSTALLER_DOWNLOADS.md",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "ops/mir3-web/Mir3-Launcher.iss",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "ops/mir3-web/PATCH_PUBLISHING.md",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "ops/mir3-web/PUBLICATION-INPUTS.md",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "ops/mir3-web/build-client-zip.py",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "ops/mir3-web/create-patch.py",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "ops/mir3-web/install.sh",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "ops/mir3-web/mir3-web.env.example",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "ops/mir3-web/mir3-web.service",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "ops/mir3-web/package-client.ps1",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "ops/mir3-web/publication_input.py",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "ops/mir3-web/publish-patch.ps1",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "ops/mir3-web/rollback.sh",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "ops/mir3-web/validate-patch-origin.py",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "ops/mir3-web/verify-patch.py",
+      "status": "added",
+      "tier": "redundant_paolo_own",
+      "feature": "",
+      "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    }
+  ]
+}
