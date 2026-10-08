@@ -24,7 +24,7 @@
   },
   "merge_kit": {
     "branch": "paolo-merge",
-    "branch_head": "1d53d9f",
+    "branch_head": "7134825",
     "composition": "4cc883d + Paolo's 10 uncommitted changes + Magus full main + inventory fix",
     "conflicts_resolved": [
       {
