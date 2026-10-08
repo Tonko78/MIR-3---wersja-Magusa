@@ -59,7 +59,7 @@ namespace Server.Models.Magics
             if (info == null) return;
 
             Player.RestoreCombatPets();
-            if (Player.CombatPetSlotCount >= CombatPetSettings.MaxCount) return;
+            if (Player.CombatPetSlotCount >= CombatPetSettings.MaxCount || Player.ActiveCount >= CombatPetSettings.MaxActive) return;
 
             if (SEnvir.Random.Next(Globals.MagicMaxLevel + 1) > Magic.Level)
             {

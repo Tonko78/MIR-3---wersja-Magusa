@@ -121,7 +121,8 @@ namespace Server.Envir
 
         [ConfigSection("CombatPets")]
         public static int ElectricShockPetDurationHours { get; set; } = 0;
-        public static int CombatPetMaxCount { get; set; } = 4;
+        public static int CombatPetMaxCount { get; set; } = 20;
+        public static int CombatPetMaxActiveCount { get; set; } = 4;
         public static bool PersistCombatPets { get; set; } = true;
         public static bool CombatPetExperienceEnabled { get; set; } = true;
         public static int CombatPetMaxLevel { get; set; } = 15;

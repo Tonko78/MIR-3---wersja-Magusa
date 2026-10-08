@@ -7,6 +7,7 @@ namespace Server.Models
     public static class CombatPetSettings
     {
         public static int MaxCount => Math.Clamp(Config.CombatPetMaxCount, 1, 20);
+        public static int MaxActive => Math.Clamp(Config.CombatPetMaxActiveCount, 1, MaxCount);
         public static int MaxLevel => Math.Clamp(Config.CombatPetMaxLevel, 0, 20);
         public static int StatBonusPerLevel => Math.Clamp(Config.CombatPetStatBonusPerLevel, 0, 50);
         public static long ExperienceRequired(int level) =>

@@ -1548,6 +1548,15 @@ namespace Server.Models
         public void Chat(string text, List<int> linkedItemIndexes = null)
         {
             if (string.IsNullOrEmpty(text)) return;
+
+            // Pet storage command (/pety) — handled before whisper routing.
+            if (text.StartsWith("/pety", StringComparison.OrdinalIgnoreCase))
+            {
+                string arg = text.StartsWith("/pety ", StringComparison.OrdinalIgnoreCase) ? text.Substring(6).Trim() : "";
+                PetCommand(arg);
+                return;
+            }
+
             SEnvir.LogChat($"{Name}: {text}");
 
             //Item Links

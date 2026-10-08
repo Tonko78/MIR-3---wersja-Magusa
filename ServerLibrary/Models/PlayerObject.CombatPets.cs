@@ -41,6 +41,8 @@ namespace Server.Models
         // A saved pet awaiting a safe spawn cell still occupies its original slot.
         public int CombatPetSlotCount => Pets.Count + (Config.PersistCombatPets && Character != null ?
             Character.CombatPets.Count(record => !Pets.Any(pet => pet.SavedCombatPet == record)) : 0);
+        public int ActiveCount => Pets.Count;
+        public int ActiveMax => (Class == MirClass.Wizard || Class == MirClass.Taoist) ? CombatPetSettings.MaxActive : 0;
 
         public bool HasPendingCombatPet(MonsterInfo monster) => Config.PersistCombatPets && Character != null &&
             Character.CombatPets.Any(record => record.Monster == monster && !Pets.Any(pet => pet.SavedCombatPet == record));
@@ -48,7 +50,7 @@ namespace Server.Models
         public void RestoreCombatPets()
         {
             if (!Config.PersistCombatPets || Character == null || Dead || Observer || CurrentCell == null) return;
-            int limit = Class == MirClass.Wizard || Class == MirClass.Taoist ? CombatPetSettings.MaxCount : 0;
+            int limit = Class == MirClass.Wizard || Class == MirClass.Taoist ? CombatPetSettings.MaxActive : 0;
             foreach (UserCombatPet record in Character.CombatPets.ToArray())
             {
                 if (Pets.Any(x => x.SavedCombatPet == record)) continue;
@@ -121,5 +123,101 @@ namespace Server.Models
                     pet.PetRecall();
             RestoreCombatPets();
         }
+
+        #region Pet Storage UI (/pety)
+
+        public void PetCommand(string input)
+        {
+            if (Class != MirClass.Wizard && Class != MirClass.Taoist)
+            { Connection?.ReceiveChat("Tylko Wizard/Taoist ma pety bojowe.", MessageType.System); return; }
+            if (Character == null || SEnvir.Session == null) return;
+            var parts = input.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 0) { PetCommandList(); return; }
+            switch (parts[0].ToLowerInvariant())
+            {
+                case "list": PetCommandList(); return;
+                case "in": PetCommandIn(parts); return;
+                case "out": PetCommandOut(parts); return;
+                case "del": PetCommandDelete(parts); return;
+                default:
+                    Connection?.ReceiveChat("Użycie: /pety | /pety in <n> | /pety out <n> | /pety del <n>", MessageType.System);
+                    return;
+            }
+        }
+
+        private void PetCommandList()
+        {
+            int slot = 0;
+            var records = Character.CombatPets.OrderBy(r => r.Index).ToList();
+            if (records.Count == 0)
+            { Connection?.ReceiveChat("Schowek petów: pusto. (0/20)", MessageType.System); return; }
+            foreach (var rec in records)
+            {
+                slot++;
+                MonsterObject live = Pets.FirstOrDefault(p => p.SavedCombatPet == rec);
+                string state = live != null && !live.Dead ? "AKTYWNY" : "schowek";
+                string name = rec.Monster?.MonsterName ?? "???";
+                string lvl = live != null ? $"Lv.{live.CombatPetLevel}" : $"Lv.{rec.CombatLevel}";
+                string exp = live != null ? (live.CombatPetLevel >= CombatPetSettings.MaxLevel ? "MAX" :
+                    $"{100m * live.CombatPetExperience / CombatPetSettings.ExperienceRequired(live.CombatPetLevel):0}%")
+                    : (rec.CombatLevel >= CombatPetSettings.MaxLevel ? "MAX" :
+                    $"{100m * rec.Experience / CombatPetSettings.ExperienceRequired(rec.CombatLevel):0}%");
+                Connection?.ReceiveChat($"[{slot}] {name} — {lvl} {exp} — {state}", MessageType.System);
+            }
+            Connection?.ReceiveChat($"Schowek: {records.Count}/{CombatPetSettings.MaxCount} | Aktywni: {Pets.Count}/{CombatPetSettings.MaxActive}", MessageType.System);
+        }
+
+        private void PetCommandIn(string[] parts)
+        {
+            if (parts.Length < 2) { PetCommandList(); return; }
+            int n;
+            if (!int.TryParse(parts[1], out n) || n < 1) { Connection?.ReceiveChat("Podaj numer slotu.", MessageType.System); return; }
+            var records = Character.CombatPets.OrderBy(r => r.Index).ToList();
+            if (n > records.Count) { Connection?.ReceiveChat("Brak slotu.", MessageType.System); return; }
+            var record = records[n - 1];
+            MonsterObject live = Pets.FirstOrDefault(p => p.SavedCombatPet == record);
+            if (live != null && !live.Dead)
+            { Connection?.ReceiveChat("Już aktywny.", MessageType.System); return; }
+            RestoreCombatPets();
+            live = Pets.FirstOrDefault(p => p.SavedCombatPet == record);
+            if (live != null)
+            { Connection?.ReceiveChat($"{record.Monster?.MonsterName} przywrócony do walki.", MessageType.System); return; }
+            if (Pets.Count >= CombatPetSettings.MaxActive)
+            { Connection?.ReceiveChat("Maks. 4 aktywnych — najpierw /pety out <n>.", MessageType.System); return; }
+            Connection?.ReceiveChat("Brak bezpiecznego miejsca — spróbuj na mapie.", MessageType.System);
+        }
+
+        private void PetCommandOut(string[] parts)
+        {
+            if (parts.Length < 2) { PetCommandList(); return; }
+            int n;
+            if (!int.TryParse(parts[1], out n) || n < 1) { Connection?.ReceiveChat("Podaj numer slotu.", MessageType.System); return; }
+            var records = Character.CombatPets.OrderBy(r => r.Index).ToList();
+            if (n > records.Count) { Connection?.ReceiveChat("Brak slotu.", MessageType.System); return; }
+            var record = records[n - 1];
+            MonsterObject live = Pets.FirstOrDefault(p => p.SavedCombatPet == record);
+            if (live == null || live.Dead)
+            { Connection?.ReceiveChat("Nie jest aktywny.", MessageType.System); return; }
+            SaveCombatPet(live);
+            live.PreserveCombatPetOnDespawn = true;
+            live.Despawn();
+            Connection?.ReceiveChat($"{record.Monster?.MonsterName} schowany do schowka.", MessageType.System);
+        }
+
+        private void PetCommandDelete(string[] parts)
+        {
+            if (parts.Length < 2) { PetCommandList(); return; }
+            int n;
+            if (!int.TryParse(parts[1], out n) || n < 1) { Connection?.ReceiveChat("Podaj numer slotu.", MessageType.System); return; }
+            var list = Character.CombatPets.OrderBy(r => r.Index).ToList();
+            if (n > list.Count) { Connection?.ReceiveChat("Brak slotu.", MessageType.System); return; }
+            var record = list[n - 1];
+            MonsterObject live = Pets.FirstOrDefault(p => p.SavedCombatPet == record);
+            if (live != null) { SaveCombatPet(live); live.PreserveCombatPetOnDespawn = true; live.Despawn(); }
+            record.Delete();
+            Connection?.ReceiveChat($"{record.Monster?.MonsterName} trwale usunięty z schowka. (pozostało: {Character.CombatPets.Count}/{CombatPetSettings.MaxCount})", MessageType.System);
+        }
+
+        #endregion
     }
 }

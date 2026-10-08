@@ -57,7 +57,7 @@ namespace Server.Models.Magics
                 return;
             }
 
-            if (Player.CombatPetSlotCount >= CombatPetSettings.MaxCount || Player.HasPendingCombatPet(info)) return;
+            if (Player.CombatPetSlotCount >= CombatPetSettings.MaxCount || Player.HasPendingCombatPet(info) || Player.ActiveCount >= CombatPetSettings.MaxActive) return;
 
             ob = MonsterObject.GetMonster(info);
 

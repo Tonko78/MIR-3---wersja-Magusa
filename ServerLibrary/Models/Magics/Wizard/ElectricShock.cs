@@ -85,7 +85,7 @@ namespace Server.Models.Magics
             }
 
             Player.RestoreCombatPets();
-            if (Player.CombatPetSlotCount >= CombatPetSettings.MaxCount) return;
+            if (Player.CombatPetSlotCount >= CombatPetSettings.MaxCount || Player.ActiveCount >= CombatPetSettings.MaxActive) return;
 
             if (SEnvir.Random.Next(4) > 0) return;
 
