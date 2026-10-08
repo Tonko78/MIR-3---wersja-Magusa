@@ -24,8 +24,8 @@
   },
   "merge_kit": {
     "branch": "paolo-merge",
-    "branch_head": "7134825",
-    "branch_head_note": "7134825 = anchor kodowy (fix srednika). Tip gałęzi jest za nim o commity docs — bot MERGUJE TIP gałęzi (git fetch <repo> paolo-merge && git merge FETCH_HEAD), nie ten hash.",
+    "branch_head": "11dc835",
+    "branch_head_note": "11dc835 = tip gałęzi i jedyny commit nad bazą 4cc883d. Bot: git fetch <repo> paolo-merge && git merge FETCH_HEAD (albo git am merge-kit/0001*.patch na 4cc883d).",
     "composition": "4cc883d + Paolo's 10 uncommitted changes + Magus full main + inventory fix",
     "conflicts_resolved": [
       {
@@ -34,7 +34,7 @@
       }
     ],
     "how_to_apply": "Option A: `git fetch <magus-repo> paolo-merge && git merge FETCH_HEAD` on Paolo's 4cc883d+10. Option B: `git am -3 paolo-merge.patch`.",
-    "patch_file": "paolo-merge.patch"
+    "patch_file": "merge-kit/0001-merge-mody-Magusa-fix-inwentarza-manifest-docelowy-s.patch"
   },
   "counts": {
     "magus_files": 311,
