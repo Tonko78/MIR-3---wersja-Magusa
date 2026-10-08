@@ -1,6 +1,6 @@
-{
+﻿{
   "schema": "magusa-paolo-merge/2",
-  "generated_utc": "2026-10-08",
+  "generated_utc": "2026-10-09",
   "generated_by": "HADES (Hermes Agent) for MAGUS",
   "intent": "Magus's changes are a fork MIDWAY through Paolo's server build. This manifest lets Paolo's bot (a) see exactly which files are Magus's mods, and (b) skip the Windows-only infra + the portal/pipeline Paolo already owns, so it imports only the server-side gameplay value.",
   "provenance": {
@@ -20,12 +20,12 @@
     ],
     "magus_fork_base": "a051c34 (guild label fixes, 2026-09-27) — 5 Zircon commits AHEAD of Paolo's base",
     "relation": "4cc883d IS an ancestor of Magus main — one tree, not divergent branches",
-    "magus_main_tip": "f19f22f (incl. inventory dialog fix)"
+    "magus_main_tip": "5b77cb2 (incl. inventory fix + Summon* fix + pet EXP A + pet storage/delete/active B+C)"
   },
   "merge_kit": {
     "branch": "paolo-merge",
-    "branch_head": "11dc835",
-    "branch_head_note": "11dc835 = tip gałęzi i jedyny commit nad bazą 4cc883d. Bot: git fetch <repo> paolo-merge && git merge FETCH_HEAD (albo git am merge-kit/0001*.patch na 4cc883d).",
+    "branch_head": "11a30a1",
+    "branch_head_note": "11a30a1 = tip gałęzi, jedyny commit nad bazą 4cc883d, drzewo = tip main (5b77cb2). Bot: git fetch <repo> paolo-merge && git merge FETCH_HEAD (albo git am merge-kit/MIR3-magus-changes.patch na 4cc883d). Zawiera: mody Magusa + fix inwentarza + fix Summon* + pet EXP (A, L1-L15) + schowek petów 20 slotów + trwałe usunięcie + max 4 aktywni (B+C).",
     "composition": "4cc883d + Paolo's 10 uncommitted changes + Magus full main + inventory fix",
     "conflicts_resolved": [
       {
@@ -34,10 +34,10 @@
       }
     ],
     "how_to_apply": "Option A: `git fetch <magus-repo> paolo-merge && git merge FETCH_HEAD` on Paolo's 4cc883d+10. Option B: `git am -3 paolo-merge.patch`.",
-    "patch_file": "merge-kit/0001-merge-mody-Magusa-fix-inwentarza-manifest-docelowy-s.patch"
+    "patch_file": "merge-kit/MIR3-magus-changes.patch"
   },
   "counts": {
-    "magus_files": 311,
+    "magus_files": 312,
     "core_needed": 52,
     "tests_optional": 49,
     "supporting": 10,
@@ -2222,6 +2222,13 @@
       "tier": "redundant_paolo_own",
       "feature": "",
       "why": "Paolo runs his own portal at /opt/mir3-web (has BuyGameGold, newer) + his own ops pipeline. Do NOT import this."
+    },
+    {
+      "path": "docs/COMBAT_PET_EXP.md",
+      "status": "added",
+      "tier": "supporting",
+      "feature": "pet-exp-curve",
+      "why": "Tabela EXP L1-L15 (PL): L6 = baza, L7+ bonus 5%/lv, cap 120000 EXP = 1200 killi @100/kill (4.3x wolniej do maxa niz stary L7)."
     }
   ]
 }
