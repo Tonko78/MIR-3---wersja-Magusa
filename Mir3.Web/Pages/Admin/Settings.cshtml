@@ -1,0 +1,30 @@
+@page
+@model Mir3.Web.Pages.Admin.SettingsModel
+@{
+    ViewData["Title"] = PortalText.Pick("Administrator settings", "Ustawienia administratora");
+}
+
+<div class="admin-shell">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>@PortalText.Pick("Administrator settings", "Ustawienia administratora")</h1>
+        <a asp-page="/Admin/Index" class="btn btn-outline-secondary">@PortalText.Pick("Dashboard", "Panel")</a>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.Message))
+    {
+        <div class="alert alert-info" role="status">@Model.Message</div>
+    }
+
+    <form method="post" class="admin-form">
+        @Html.AntiForgeryToken()
+        <div class="form-check mb-3">
+            <input asp-for="AutoActivate" class="form-check-input" />
+            <label asp-for="AutoActivate" class="form-check-label">@PortalText.Pick("Automatically queue an account after e-mail verification", "Automatycznie dodawaj konto do kolejki po potwierdzeniu adresu e-mail")</label>
+        </div>
+        <div class="mb-3">
+            <label asp-for="ConfirmText" class="form-label">@PortalText.Pick("Type CONFIRM to save", "Wpisz CONFIRM, aby zapisać")</label>
+            <input asp-for="ConfirmText" class="form-control" autocomplete="off" placeholder="CONFIRM" />
+        </div>
+        <button type="submit" class="btn btn-primary">@PortalText.Pick("Save settings", "Zapisz ustawienia")</button>
+    </form>
+</div>

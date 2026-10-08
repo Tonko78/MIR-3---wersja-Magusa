@@ -1,0 +1,29 @@
+@page
+@model Mir3.Web.Pages.Admin.LoginModel
+@{
+    ViewData["Title"] = PortalText.Pick("Administrator sign in", "Logowanie administratora");
+    if (CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "pl")
+        ViewContext.ClientValidationEnabled = false;
+}
+
+<div class="admin-shell admin-login">
+    <h1>@PortalText.Pick("Administrator sign in", "Logowanie administratora")</h1>
+    <p>@PortalText.Pick("Sign in to manage Mir3 registrations.", "Zaloguj się, aby zarządzać rejestracjami Mir3.")</p>
+    <form method="post" class="admin-form">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <div class="mb-3">
+            <label asp-for="Input.Username" class="form-label">@PortalText.Pick("Username", "Nazwa użytkownika")</label>
+            <input asp-for="Input.Username" class="form-control" autocomplete="username" />
+        </div>
+        <div class="mb-3">
+            <label asp-for="Input.Password" class="form-label">@PortalText.Pick("Password", "Hasło")</label>
+            <input asp-for="Input.Password" type="password" class="form-control" autocomplete="current-password" />
+        </div>
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <p class="text-danger" role="alert">@Model.ErrorMessage</p>
+        }
+        <button type="submit" class="btn btn-primary">@PortalText.Pick("Sign in", "Zaloguj się")</button>
+    </form>
+</div>

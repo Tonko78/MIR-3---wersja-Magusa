@@ -1,0 +1,22 @@
+[Unit]
+Description=Mir3 web portal
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=mir3-web
+Group=mir3-web
+WorkingDirectory=/opt/mir3-web/app
+EnvironmentFile=/etc/mir3-web/mir3-web.env
+ExecStart=/opt/dotnet/dotnet /opt/mir3-web/app/Mir3.Web.dll
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/mir3-web /opt/zircon/account-queue /opt/mir3-web/downloads
+
+[Install]
+WantedBy=multi-user.target
