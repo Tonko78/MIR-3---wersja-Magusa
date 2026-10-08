@@ -554,11 +554,7 @@ namespace Client.Envir
 
                     CEnvir.TestServer = p.TestServer;
 
-                    if (Config.RememberDetails)
-                    {
-                        Config.RememberedEMail = login.LoginBox.EMailTextBox.TextBox.Text;
-                        Config.RememberedPassword = login.LoginBox.PasswordTextBox.TextBox.Text;
-                    }
+                    LoginDetailsStore.SaveSuccessfulLogin(login.LoginBox.EMailTextBox.TextBox.Text, login.LoginBox.PasswordTextBox.TextBox.Text);
 
                     login.Dispose();
                     DXSoundManager.Stop(SoundIndex.LoginScene2);
@@ -1848,6 +1844,7 @@ namespace Client.Envir
                 if (ob.Race != ObjectType.Monster) return;
 
                 MonsterObject mob = (MonsterObject)ob;
+                mob.Name = string.IsNullOrEmpty(p.CustomName) ? mob.MonsterInfo.MonsterName : p.CustomName;
                 mob.PetOwner = p.PetOwner;
                 return;
             }
@@ -2696,6 +2693,23 @@ namespace Client.Envir
             }
         }
 
+        public void Process(S.ItemRecovered p)
+        {
+            var grid = GameScene.Game?.InventoryBox?.Grid.Grid;
+            if (p.Item == null || grid == null || p.Item.Slot < 0 || p.Item.Slot >= grid.Length) return;
+
+            // Recovery preserves the instance and authoritative slot; normal gains may merge stacks.
+            var cell = grid[p.Item.Slot];
+            cell.Locked = false;
+            cell.Item = p.Item;
+            RefreshCrafting();
+        }
+
+        public void Process(S.ItemRecycleState p)
+        {
+            GameScene.Game?.InventoryBox?.UpdateRecycleState(p.Count, p.SecondsRemaining);
+        }
+
         public void Process(S.ItemDelete p)
         {
             DXItemCell cell;
@@ -3475,45 +3489,6 @@ namespace Client.Envir
             }
         }
 
-        public void Process(S.GroupLootUpdate p)
-        {
-            GameScene.Game.GroupBagBox.Update(p.Loot);
-            foreach (GroupLootSettingsDialog dialog in DXWindow.Windows.OfType<GroupLootSettingsDialog>().ToList())
-                dialog.Update(p.Loot);
-
-            if (!p.Loot.Sharing && GameScene.Game.GroupLootVoteBox != null)
-            {
-                GameScene.Game.GroupLootVoteBox.CancelWithoutVote();
-                GameScene.Game.GroupLootVoteBox = null;
-            }
-        }
-
-        public void Process(S.GroupLootVotePrompt p)
-        {
-            if (GameScene.Game.GroupLootVoteBox != null)
-                GameScene.Game.GroupLootVoteBox.CancelWithoutVote();
-
-            GameScene.Game.GroupLootVoteBox = new GroupLootVoteDialog(p.Item, p.Duration, p.CanNeed);
-        }
-
-        public void Process(S.GroupLootResult p)
-        {
-            string itemName = p.ItemName;
-            if (string.IsNullOrEmpty(itemName))
-                itemName = GameScene.Game.GroupBagBox.Info.Items.FirstOrDefault(x => x.Index == p.ItemIndex)?.Info?.ItemName ?? p.ItemIndex.ToString();
-
-            string message = string.IsNullOrEmpty(p.Winner)
-                ? string.Format(CEnvir.Language.GroupLootNoWinner, itemName)
-                : string.Format(CEnvir.Language.GroupLootWon, p.Winner, itemName);
-            GameScene.Game.ReceiveChat(message, MessageType.Group);
-
-            if (GameScene.Game.GroupLootVoteBox?.ItemArray?[0]?.Index == p.ItemIndex)
-            {
-                GameScene.Game.GroupLootVoteBox.CancelWithoutVote();
-                GameScene.Game.GroupLootVoteBox = null;
-            }
-        }
-
         public void Process(S.GroupInvite p)
         {
             DXMessageBox messageBox = new DXMessageBox($"Do you want to group with {p.Name}?", "Group Invitation", DXMessageBoxButtons.YesNo);
@@ -4010,6 +3985,14 @@ namespace Client.Envir
             DXItemCell fromCell = grid[p.Slot];
 
             fromCell.Item = p.Item;
+        }
+
+        public void Process(S.GuildFragmentState p)
+        {
+            if (GameScene.Game?.GuildBox.GuildInfo == null) return;
+            GameScene.Game.GuildBox.UpdateFragments(p.Capacity, p.Revision, p.Items);
+            if (!string.IsNullOrEmpty(p.Message))
+                GameScene.Game.ReceiveChat(p.Message, MessageType.System);
         }
 
         public void Process(S.GuildNewItem p)

@@ -179,6 +179,8 @@ namespace Library.Network.ClientPackets
         public GridType Grid { get; set; }
     }
 
+    public sealed class ItemRecover : Packet { }
+
     public sealed class ItemDelete : Packet
     {
         public GridType Grid { get; set; }
@@ -232,10 +234,7 @@ namespace Library.Network.ClientPackets
         public bool Enabled { get; set; }
     }
 
-    public sealed class PickUp : Packet
-    {
-        public uint ObjectID { get; set; }
-    }
+    public sealed class PickUp : Packet { }
 
     public sealed class Chat : Packet
     {
@@ -398,31 +397,6 @@ namespace Library.Network.ClientPackets
         public bool Receive { get; set; }
     }
 
-    public sealed class GroupLootSettings : Packet
-    {
-        public GroupLootMode Mode { get; set; }
-        public bool BagEnabled { get; set; }
-        public bool NeedRestrictions { get; set; }
-        public bool AllowManualTaking { get; set; }
-        public List<ItemType> ItemTypes { get; set; }
-        public List<Rarity> Rarities { get; set; }
-    }
-
-    public sealed class GroupLootShare : Packet
-    {
-    }
-
-    public sealed class GroupLootTake : Packet
-    {
-        public int ItemIndex { get; set; }
-    }
-
-    public sealed class GroupLootVote : Packet
-    {
-        public int ItemIndex { get; set; }
-        public Library.GroupLootVote Vote { get; set; }
-    }
-
     public sealed class Inspect : Packet
     {
         public int Index { get; set; }
@@ -574,6 +548,16 @@ namespace Library.Network.ClientPackets
     public sealed class TradeConfirm : Packet
     {
 
+    }
+
+    public sealed class GuildFragmentOperation : Packet
+    {
+        public GuildFragmentAction Action { get; set; }
+        public GridType SourceGrid { get; set; }
+        public int Slot { get; set; }
+        public int ItemIndex { get; set; }
+        public long Count { get; set; }
+        public long Revision { get; set; }
     }
 
     public sealed class GuildCreate : Packet

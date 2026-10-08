@@ -620,7 +620,7 @@ namespace Client.Scenes.Views
             SaveFilterButton = new DXButton
             {
                 Parent = this,
-                Label = { Text = CEnvir.Language.FilterDialogSaveButtonLabel, },
+                Label = { Text = "Save settings", },
                 ButtonType = ButtonType.SmallButton,
                 Size = new Size(80, SmallButtonHeight)
             };

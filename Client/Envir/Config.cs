@@ -1,4 +1,4 @@
-﻿using Shared.Rendering;
+using Shared.Rendering;
 using Library;
 using System;
 using System.Drawing;
@@ -14,7 +14,7 @@ namespace Client.Envir
         public const int DefaultPort = 7000;
 
         [ConfigSection("Network")]
-        public static bool UseNetworkConfig { get; set; } = false;
+        public static bool UseNetworkConfig { get; set; } = true;
         public static string IPAddress { get; set; } = DefaultIPAddress;
         public static int Port { get; set; } = DefaultPort;
         public static TimeSpan TimeOutDuration { get; set; } = TimeSpan.FromSeconds(15);

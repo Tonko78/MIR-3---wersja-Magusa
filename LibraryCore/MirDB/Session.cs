@@ -72,7 +72,7 @@ namespace MirDB
             Mode = mode;
         }
 
-        public Session(SessionMode mode, string root = @".\Database\", string backup = @".\Backup\")
+        public Session(SessionMode mode, string root = "./Database/", string backup = "./Backup/")
         {
             Root = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, root));
             BackupRoot = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, backup));

@@ -121,10 +121,7 @@
   <data name="PatchHeader" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\PatchHeader.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="Patcher" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\Patcher.exe;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
   <data name="Zircon" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\zircon.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\Zircon.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
 </root>

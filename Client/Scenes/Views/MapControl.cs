@@ -820,8 +820,6 @@ namespace Client.Scenes.Views
                 return;
             }
 
-            if (TryPickUpSelectedLoot()) return;
-
             if (CanAttack(MapObject.MouseObject))
             {
                 MapObject.TargetObject = MapObject.MouseObject;
@@ -989,9 +987,6 @@ namespace Client.Scenes.Views
                     }
                 }
             }
-
-            if (itemObject is ItemObject item)
-                itemObject = GetSelectedLoot(item);
 
             MapObject mouseOb = deadObject ?? itemObject;
 

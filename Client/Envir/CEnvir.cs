@@ -450,6 +450,10 @@ namespace Client.Envir
 
                     Loaded = true;
                 }
+                catch (Exception ex)
+                {
+                    SaveException(ex);
+                }
                 finally
                 {
                     Loading = false;

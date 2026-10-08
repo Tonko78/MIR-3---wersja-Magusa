@@ -266,6 +266,14 @@ namespace Client.Models
             ReleaseLabels();
         }
 
+        internal void DrawFocus(int layer)
+        {
+            EnsureFocusLabel();
+            if (FocusLabel == null) return;
+            FocusLabel.Location = new Point(DrawX + (48 - FocusLabel.Size.Width) / 2, DrawY - (32 - FocusLabel.Size.Height / 2) + 8 - layer * 16);
+            FocusLabel.Draw();
+        }
+
         internal int FocusHeight
         {
             get
@@ -275,14 +283,12 @@ namespace Client.Models
             }
         }
 
-        internal void DrawFocusAt(int y, bool selected)
+        internal void DrawFocusAt(int y)
         {
             EnsureFocusLabel();
             if (FocusLabel == null) return;
             FocusLabel.Location = new Point(Math.Clamp(DrawX + (CellWidth - FocusLabel.Size.Width) / 2,
                 0, Math.Max(0, GameScene.Game.MapControl.Size.Width - FocusLabel.Size.Width)), y);
-            if (selected)
-                RenderingPipelineManager.FillRectangle(new Rectangle(FocusLabel.Location, FocusLabel.Size), Constants.SelectedRowBackColour);
             FocusLabel.Draw();
         }
     }

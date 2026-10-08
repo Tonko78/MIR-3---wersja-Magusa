@@ -48,6 +48,7 @@ namespace Server.Models.Magics
 
             if (info == null) return;
 
+            Player.RestoreCombatPets();
             MonsterObject ob = Player.Pets.FirstOrDefault(x => x.MonsterInfo == info);
 
             if (ob != null)
@@ -56,7 +57,7 @@ namespace Server.Models.Magics
                 return;
             }
 
-            if (Player.Pets.Count >= 2) return;
+            if (Player.CombatPetSlotCount >= CombatPetSettings.MaxCount || Player.HasPendingCombatPet(info)) return;
 
             ob = MonsterObject.GetMonster(info);
 
@@ -69,7 +70,7 @@ namespace Server.Models.Magics
             ob.Master = null;
             ob.Magics.Add(Magic);
             ob.SummonLevel = Magic.Level * 2;
-            ob.TameTime = SEnvir.Now.AddDays(365);
+            ob.TameTime = System.DateTime.MaxValue;
 
             Player.LogMilestone(MilestoneType.PetSummon, 1, monster: ob.MonsterInfo);
 
@@ -87,6 +88,7 @@ namespace Server.Models.Magics
                 ob.Spawn(CurrentMap, CurrentLocation);
 
             ob.SetHP(ob.Stats[Stat.Health]);
+            Player.SaveCombatPet(ob);
 
             Player.LevelMagic(Magic);
         }

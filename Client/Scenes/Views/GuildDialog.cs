@@ -17,7 +17,7 @@ using C = Library.Network.ClientPackets;
 //Cleaned
 namespace Client.Scenes.Views
 {
-    public sealed class GuildDialog : DXImageControl
+    public sealed partial class GuildDialog : DXImageControl
     {
         #region Properties
 
@@ -250,6 +250,7 @@ namespace Client.Scenes.Views
             HomeTab.TabButton.InvokeMouseClick();
 
             RefreshStorage();
+            UpdateFragments(GuildInfo.FragmentStorageLimit, GuildInfo.FragmentRevision, GuildInfo.FragmentStorage);
 
             RefreshGuildDisplay();
         }
@@ -386,6 +387,7 @@ namespace Client.Scenes.Views
 
             CreateStorageTab();
 
+            CreateFragmentsTab();
             CreateWarTab();
 
             CreateStyleTab();
@@ -404,6 +406,10 @@ namespace Client.Scenes.Views
             HomeTab.TabButton.Visible = GuildInfo != null;
             MemberTab.TabButton.Visible = GuildInfo != null;
             StorageTab.TabButton.Visible = GuildInfo != null;
+            FragmentTab.TabButton.Visible = GuildInfo != null;
+            Array.Clear(GuildFragments, 0, GuildFragments.Length);
+            SelectedFragmentSlot = -1;
+            RefreshFragmentDisplay();
             WarTab.TabButton.Visible = GuildInfo != null;
             StyleTab.TabButton.Visible = GuildInfo != null;
             CastleTab.TabButton.Visible = GuildInfo != null && GameScene.Game.CastleOwners.Any(x => x.Value == GuildInfo.GuildName);
@@ -473,6 +479,7 @@ namespace Client.Scenes.Views
 
             PermissionChanged();
 
+            RefreshFragmentPermissions();
             ApplyStorageFilter();
         }
         private void RefreshStorage()
@@ -634,7 +641,6 @@ namespace Client.Scenes.Views
                 Outline = true,
                 OutlineColour = Color.Black,
                 IsControl = false,
-                AutoSize = false,
                 Size = new Size(CreateTab.Size.Width, 22),
                 DrawFormat = TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter,
                 Location = new Point(0, 20)
@@ -669,7 +675,6 @@ namespace Client.Scenes.Views
                 Outline = true,
                 OutlineColour = Color.Black,
                 IsControl = false,
-                AutoSize = false,
                 Size = new Size(CreateTab.Size.Width, 22),
                 DrawFormat = TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter,
                 Location = new Point(0, label.Location.Y + 50)
@@ -715,7 +720,6 @@ namespace Client.Scenes.Views
                 Outline = true,
                 OutlineColour = Color.Black,
                 IsControl = false,
-                AutoSize = false,
                 Size = new Size(CreateTab.Size.Width, 22),
                 DrawFormat = TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter,
                 Location = new Point(0, HornCheckBox.Location.Y + 50)
@@ -796,7 +800,6 @@ namespace Client.Scenes.Views
                 Outline = true,
                 OutlineColour = Color.Black,
                 IsControl = false,
-                AutoSize = false,
                 Size = new Size(CreateTab.Size.Width, 22),
                 DrawFormat = TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter,
                 Location = new Point(0, StorageTextBox.Location.Y + 50)
@@ -1412,7 +1415,7 @@ namespace Client.Scenes.Views
                 Font = new Font(Config.FontName, CEnvir.FontSize(8F), FontStyle.Regular),
                 Size = new Size(110, 16),
                 Border = false,
-                Location = new Point(label.Location.X + label.Size.Width + 6, label.Location.Y),
+                Location = new Point(label.Location.X + label.Size.Width + 2, label.Location.Y),
             };
             ItemNameTextBox.TextBox.TextChanged += (o, e) => ApplyStorageFilter();
 
@@ -1427,7 +1430,7 @@ namespace Client.Scenes.Views
             {
                 Border = false,
                 Parent = filterPanel,
-                Location = new Point(label.Location.X + label.Size.Width + 6, label.Location.Y + 1),
+                Location = new Point(label.Location.X + label.Size.Width + 1, label.Location.Y + 1),
                 Size = new Size(122, DXComboBox.DefaultNormalHeight)
             };
             ItemTypeComboBox.SelectedItemChanged += (o, e) => ApplyStorageFilter();
@@ -2729,6 +2732,7 @@ namespace Client.Scenes.Views
         public DXTextBox RankTextBox;
 
         public DXCheckBox LeaderBox, EditNoticeBox, AddMemberBox, StorageBox, RepairBox, MerchantBox, MarketBox, StartWarBox;
+        public DXCheckBox FragmentDepositBox, FragmentWithdrawBox, FragmentAssembleBox;
 
         public DXButton ConfirmButton, KickButton;
 
@@ -2762,6 +2766,10 @@ namespace Client.Scenes.Views
             RepairBox.Enabled = MemberIndex != GameScene.Game.GuildBox.GuildInfo.UserIndex;
             MerchantBox.Enabled = MemberIndex != GameScene.Game.GuildBox.GuildInfo.UserIndex;
             MarketBox.Enabled = MemberIndex != GameScene.Game.GuildBox.GuildInfo.UserIndex;
+            StartWarBox.Enabled = MarketBox.Enabled;
+            FragmentDepositBox.Enabled = MarketBox.Enabled;
+            FragmentWithdrawBox.Enabled = MarketBox.Enabled;
+            FragmentAssembleBox.Enabled = MarketBox.Enabled;
 
 
             KickButton.Enabled = MemberIndex != GameScene.Game.GuildBox.GuildInfo.UserIndex;
@@ -2801,6 +2809,12 @@ namespace Client.Scenes.Views
             MarketBox.Checked = (Permission & GuildPermission.FundsMarket) == GuildPermission.FundsMarket;
             StartWarBox.Checked = (Permission & GuildPermission.StartWar) == GuildPermission.StartWar;
 
+            if (FragmentDepositBox != null)
+            {
+                FragmentDepositBox.Checked = (Permission & GuildPermission.FragmentDeposit) != 0;
+                FragmentWithdrawBox.Checked = (Permission & GuildPermission.FragmentWithdraw) != 0;
+                FragmentAssembleBox.Checked = (Permission & GuildPermission.FragmentAssemble) != 0;
+            }
             Updating = false;
             PermissionChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -2816,7 +2830,7 @@ namespace Client.Scenes.Views
 
         public GuildMemberDialog()
         {
-            SetClientSize(new Size(200, 160));
+            SetClientSize(new Size(230, 240));
 
             TitleLabel.Text = CEnvir.Language.GuildMemberDialogTitle;
 
@@ -2916,11 +2930,21 @@ namespace Client.Scenes.Views
             MarketBox.CheckedChanged += (o, e) => UpdatePermission();
             MarketBox.Location = new Point(0200 - MarketBox.Size.Width, MerchantBox.Location.Y + 20);
 
+            FragmentDepositBox = new DXCheckBox { Parent = this, Label = { Text = "Fragmenty: wpłaty" }, Location = new Point(8, StartWarBox.Location.Y + 24) };
+            FragmentWithdrawBox = new DXCheckBox { Parent = this, Label = { Text = "Fragmenty: wypłaty" }, Location = new Point(8, FragmentDepositBox.Location.Y + 20) };
+            FragmentAssembleBox = new DXCheckBox { Parent = this, Label = { Text = "Fragmenty: składanie" }, Location = new Point(8, FragmentWithdrawBox.Location.Y + 20) };
+            FragmentDepositBox.Location = new Point(200 - FragmentDepositBox.Size.Width, FragmentDepositBox.Location.Y);
+            FragmentWithdrawBox.Location = new Point(200 - FragmentWithdrawBox.Size.Width, FragmentWithdrawBox.Location.Y);
+            FragmentAssembleBox.Location = new Point(200 - FragmentAssembleBox.Size.Width, FragmentAssembleBox.Location.Y);
+            FragmentDepositBox.CheckedChanged += (o, e) => UpdatePermission();
+            FragmentWithdrawBox.CheckedChanged += (o, e) => UpdatePermission();
+            FragmentAssembleBox.CheckedChanged += (o, e) => UpdatePermission();
+
 
             ConfirmButton = new DXButton
             {
                 Parent = this,
-                Location = new Point(0120, StorageBox.Location.Y + 40),
+                Location = new Point(0120, FragmentAssembleBox.Location.Y + 30),
                 ButtonType = ButtonType.SmallButton,
                 Size = new Size(80, SmallButtonHeight),
                 Label = { Text = CEnvir.Language.CommonControlConfirm },
@@ -2935,7 +2959,7 @@ namespace Client.Scenes.Views
             KickButton = new DXButton
             {
                 Parent = this,
-                Location = new Point(ClientArea.X, StorageBox.Location.Y + 40),
+                Location = new Point(ClientArea.X, ConfirmButton.Location.Y),
                 ButtonType = ButtonType.SmallButton,
                 Size = new Size(40, SmallButtonHeight),
                 Label = { Text = CEnvir.Language.GuildMemberDialogKickButtonLabel },
@@ -2986,6 +3010,9 @@ namespace Client.Scenes.Views
                 permission |= GuildPermission.StartWar;
 
 
+            if (FragmentDepositBox.Checked) permission |= GuildPermission.FragmentDeposit;
+            if (FragmentWithdrawBox.Checked) permission |= GuildPermission.FragmentWithdraw;
+            if (FragmentAssembleBox.Checked) permission |= GuildPermission.FragmentAssemble;
             Permission = permission;
         }
 

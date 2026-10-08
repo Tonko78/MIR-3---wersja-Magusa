@@ -339,7 +339,6 @@ namespace Client.Models
 
             GameScene.Game.StruckEnabled = info.StruckEnabled;
             GameScene.Game.HermitEnabled = info.HermitEnabled;
-            GameScene.Game.GroupLootEnabled = info.GroupLootEnabled;
 
             Globals.MaxGemPurity = info.MaxGemPurity;
 

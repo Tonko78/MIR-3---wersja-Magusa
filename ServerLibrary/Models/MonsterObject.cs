@@ -27,8 +27,6 @@ namespace Server.Models
 
         public MonsterInfo MonsterInfo;
 
-        protected virtual bool CanDropRewards => true;
-
         public SpawnInfo SpawnInfo;
         public int DropSet;
 
@@ -762,6 +760,8 @@ namespace Server.Models
                 Stats[Stat.Agility] += Stats[Stat.Agility] * SummonLevel / 10;
             }
 
+            ApplyCombatPetStats();
+
             GrowthLevel = Math.Min(Globals.MaxGrowthLevel, Math.Max(0, Stats[Stat.GrowthLevel]));
 
             if (GrowthLevel > 0)
@@ -1104,7 +1104,7 @@ namespace Server.Models
         }
         public override void ProcessNameColour()
         {
-            NameColour = Color.White;
+            NameColour = IsCombatPet ? CombatPetNameColour : Color.White;
 
             if (SEnvir.Now < ShockTime)
                 NameColour = Color.Peru;
@@ -1142,6 +1142,10 @@ namespace Server.Models
         {
             base.OnDespawned();
 
+            if (!PreserveCombatPetOnDespawn) ForgetCombatPet();
+            SavedCombatPet = null;
+            combatPetAttackers.Clear();
+
             Master?.MinionList.Remove(this);
             Master = null;
 
@@ -1163,6 +1167,7 @@ namespace Server.Models
 
         public void UnTame()
         {
+            ResetCombatPetProgress();
             PetOwner?.Pets.Remove(this);
             PetOwner = null;
             Target = null;
@@ -1177,10 +1182,13 @@ namespace Server.Models
         }
         public void PetRecall()
         {
+            if (PetOwner?.CurrentCell == null || Dead) return;
             Cell cell = PetOwner.CurrentMap.GetCell(Functions.Move(PetOwner.CurrentLocation, PetOwner.Direction, -1));
 
             if (cell == null || cell.Movements != null)
-                cell = PetOwner.CurrentCell;
+                cell = PetOwner.CurrentMap.GetCells(PetOwner.CurrentLocation, 0, 2).FirstOrDefault(x => x.Movements == null);
+
+            if (cell == null) return;
 
             Teleport(PetOwner.CurrentMap, cell.Location);
 
@@ -2614,7 +2622,10 @@ namespace Server.Models
                     BuffRemove(buff);
             }
             else
+            {
+                RecordCombatPetHit(attacker, power);
                 ChangeHP(-power);
+            }
 
             var chainPoison = PoisonList.FirstOrDefault(x => x.Type == PoisonType.Chain);
 
@@ -2655,9 +2666,13 @@ namespace Server.Models
 
         public override void Die()
         {
+            if (Dead) return;
+            ForgetCombatPet();
             base.Die();
 
             TriggerVengeance();
+
+            RewardCombatPets();
 
             YieldReward();
 
@@ -2829,8 +2844,6 @@ namespace Server.Models
                 if (!EXPOwner.Dead && EXPOwner.CurrentMap == CurrentMap && Functions.InRange(EXPOwner.CurrentLocation, CurrentLocation, Config.MaxViewRange))
                     Drop(EXPOwner, 1, dRate);
             }
-            else if (Config.EnableGroupLoot && !NeedHarvest)
-                DropGroup(EXPOwner, dPlayers, dRate);
             else
             {
                 foreach (PlayerObject player in dPlayers)
@@ -2838,29 +2851,8 @@ namespace Server.Models
             }
         }
 
-        private void DropGroup(PlayerObject owner, List<PlayerObject> members, decimal rate)
-        {
-            if (!CanDropRewards) return;
-
-            HashSet<AccountInfo> eligibleAccounts = owner.GroupMembers.Select(x => x.Character.Account).ToHashSet();
-            Drop(owner, 1, rate, eligibleAccounts);
-
-            foreach (PlayerObject member in members)
-            {
-                bool companionAutoCollect = member.Stats[Stat.CompanionCollection] > 0 && member.Companion != null;
-                DropQuestRewards(member, companionAutoCollect, null);
-            }
-        }
-
         public virtual void Drop(PlayerObject owner, int players, decimal rate)
         {
-            Drop(owner, players, rate, null);
-        }
-
-        public virtual void Drop(PlayerObject owner, int players, decimal rate, HashSet<AccountInfo> eligibleAccounts)
-        {
-            if (!CanDropRewards) return;
-
             rate *= 1M + owner.Stats[Stat.DropRate] / 100M;
 
             rate *= 1M + owner.Stats[Stat.BaseDropRate] / 100M;
@@ -2980,14 +2972,18 @@ namespace Server.Models
                     {
                         Item = item,
                         Account = owner.Character.Account,
-                        Owners = eligibleAccounts,
                         MonsterDrop = true,
                     };
 
                     ob.Spawn(CurrentMap, cell.Location);
 
                     if (companionAutoCollect)
-                        ob.PickUpItem(owner.Companion);
+                    {
+                        ItemCheck check = new ItemCheck(ob.Item, ob.Item.Count, ob.Item.Flags,
+                            ob.Item.ExpireTime);
+
+                        if (owner.Companion.CanGainItems(true, check)) ob.PickUpItem(owner.Companion);
+                    }
 
                     continue;
                 }
@@ -3033,10 +3029,7 @@ namespace Server.Models
                             owner.Character.Account.GuildMember.Contribute(taxableAmount);
                         }
 
-                        if (eligibleAccounts != null && owner.UsesGroupCurrencySharing(item))
-                            owner.DistributeGroupCurrency(item);
-                        else
-                            owner.GainItem(item);
+                        owner.GainItem(item);
                         continue;
                     }
 
@@ -3046,33 +3039,28 @@ namespace Server.Models
                     {
                         Item = item,
                         Account = owner.Character.Account,
-                        Owners = eligibleAccounts,
                         MonsterDrop = true,
                     };
 
                     ob.Spawn(CurrentMap, cell.Location);
 
                     if (companionAutoCollect)
-                        ob.PickUpItem(owner.Companion);
+                    {
+                        long goldAmount = 0;
+
+                        if (ob.Item.Info == SEnvir.GoldInfo && ob.Account.GuildMember != null && ob.Account.GuildMember.Guild.GuildTax > 0)
+                        {
+                            goldAmount = ob.Account?.GuildMember?.Guild?.CalculateGuildTax(ob.Item) ?? 0;
+                        }
+
+                        ItemCheck check = new ItemCheck(ob.Item, ob.Item.Count - goldAmount, ob.Item.Flags,
+                            ob.Item.ExpireTime);
+
+                        if (owner.Companion.CanGainItems(true, check)) ob.PickUpItem(owner.Companion);
+                    }
                 }
             }
 
-            if (eligibleAccounts == null)
-                drops = DropQuestRewards(owner, companionAutoCollect, drops);
-
-            if (result && owner.Companion != null)
-                owner.Companion.SearchTime = DateTime.MinValue;
-
-            if (!NeedHarvest) return;
-
-            if (Drops == null)
-                Drops = new Dictionary<AccountInfo, List<UserItem>>();
-
-            Drops[owner.Character.Account] = drops;
-        }
-
-        private List<UserItem> DropQuestRewards(PlayerObject owner, bool companionAutoCollect, List<UserItem> drops)
-        {
             foreach (UserQuest quest in owner.Quests)
             {
                 //For Each Active Quest
@@ -3164,7 +3152,19 @@ namespace Server.Models
                             userTask.Objects.Add(ob);
 
                             if (companionAutoCollect)
-                                ob.PickUpItem(owner.Companion);
+                            {
+                                long goldAmount = 0;
+
+                                if (ob.Item.Info == SEnvir.GoldInfo && ob.Account.GuildMember != null &&
+                                    ob.Account.GuildMember.Guild.GuildTax > 0)
+                                    goldAmount = (long)Math.Ceiling(ob.Item.Count * ob.Account.GuildMember.Guild.GuildTax);
+
+                                ItemCheck check = new ItemCheck(ob.Item, ob.Item.Count - goldAmount, ob.Item.Flags,
+                                    ob.Item.ExpireTime);
+
+                                if (owner.Companion.CanGainItems(true, check)) ob.PickUpItem(owner.Companion);
+
+                            }
                             break;
                     }
 
@@ -3174,7 +3174,15 @@ namespace Server.Models
                     owner.Enqueue(new S.QuestChanged { Quest = quest.ToClientInfo() });
             }
 
-            return drops;
+            if (result && owner.Companion != null)
+                owner.Companion.SearchTime = DateTime.MinValue;
+
+            if (!NeedHarvest) return;
+
+            if (Drops == null)
+                Drops = new Dictionary<AccountInfo, List<UserItem>>();
+
+            Drops[owner.Character.Account] = drops;
         }
 
         public virtual void Turn(MirDirection direction)
@@ -3310,6 +3318,7 @@ namespace Server.Models
                 Location = CurrentLocation,
 
                 NameColour = NameColour,
+                CustomName = CombatPetDisplayName,
                 Direction = Direction,
                 Dead = Dead,
 

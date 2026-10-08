@@ -8,7 +8,7 @@ namespace Server.Envir.Commands
     {
         public override bool IsAllowedByPlayer(PlayerObject player)
         {
-            return player.Character.Account.TempAdmin;
+            return player.Character.Account.IsAdmin(includeTemp: true);
         }
     }
 }

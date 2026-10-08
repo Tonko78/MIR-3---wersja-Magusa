@@ -1,8 +1,6 @@
-﻿using DevExpress.LookAndFeel;
-using DevExpress.Skins;
-using DevExpress.UserSkins;
-using Library;
+﻿using Library;
 using System;
+using System.IO;
 using System.Reflection;
 using System.Windows.Forms;
 
@@ -18,15 +16,12 @@ namespace Launcher
         [STAThread]
         static void Main()
         {
+            Directory.SetCurrentDirectory(AppContext.BaseDirectory);
             ConfigReader.Load(Assembly.GetAssembly(typeof(Config)));
 
             Application.EnableVisualStyles();
             Application.SetHighDpiMode(HighDpiMode.SystemAware);
             Application.SetCompatibleTextRenderingDefault(false);
-
-            BonusSkins.Register();
-            SkinManager.EnableFormSkins();
-            UserLookAndFeel.Default.SetSkinStyle("DevExpress Style");
 
             Application.Run(new LMain());
 

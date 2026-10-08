@@ -1,4 +1,4 @@
-using Client.Controls;
+﻿using Client.Controls;
 using Client.Envir;
 using Client.Models;
 using Client.UserModels;
@@ -13,14 +13,17 @@ using C = Library.Network.ClientPackets;
 
 namespace Client.Scenes.Views
 {
-    public sealed class InventoryDialog : DXImageControl
+    public sealed class InventoryDialog : DXWindow
     {
         #region Properties
 
         public DXItemGrid Grid;
 
-        public DXLabel TitleLabel, PrimaryCurrencyLabel, SecondaryCurrencyLabel, WeightLabel, WalletLabel, PrimaryCurrencyTitle, SecondaryCurrencyTitle;
-        public DXButton CloseButton, SortButton, TrashButton, SellButton;
+        public DXLabel PrimaryCurrencyLabel, SecondaryCurrencyLabel, WeightLabel, WalletLabel, PrimaryCurrencyTitle, SecondaryCurrencyTitle;
+        public DXButton SortButton, TrashButton, SellButton;
+        public DXButton UndoDeleteButton;
+        public bool DeleteEnabled { get; private set; }
+        private int recycleCount;
 
         public List<DXItemCell> SelectedItems = new();
 
@@ -95,7 +98,7 @@ namespace Client.Scenes.Views
         public override void OnIsVisibleChanged(bool oValue, bool nValue)
         {
             if (!IsVisible)
-                Grid.ClearLinks();
+                Grid?.ClearLinks();
 
             if (IsVisible)
                 BringToFront();
@@ -106,105 +109,45 @@ namespace Client.Scenes.Views
             base.OnIsVisibleChanged(oValue, nValue);
         }
 
-        public override void OnLocationChanged(Point oValue, Point nValue)
-        {
-            base.OnLocationChanged(oValue, nValue);
-
-            if (Settings != null && IsMoving)
-                Settings.Location = nValue;
-        }
-
-        public override void OnKeyDown(KeyEventArgs e)
-        {
-            base.OnKeyDown(e);
-
-            switch (e.KeyCode)
-            {
-                case Keys.Escape:
-                    if (CloseButton.Visible)
-                    {
-                        CloseButton.InvokeMouseClick();
-                        if (!Config.EscapeCloseAll)
-                            e.Handled = true;
-                    }
-                    break;
-            }
-        }
-
         #endregion
 
         #region Settings
 
-        public WindowSetting Settings;
-        public WindowType Type => WindowType.InventoryBox;
+        public override WindowType Type => WindowType.InventoryBox;
+        public override bool CustomSize => false;
+        public override bool AutomaticVisibility => true;
 
-        public void LoadSettings()
+        public override void ApplySettings()
         {
-            if (Type == WindowType.None || !CEnvir.Loaded) return;
-
-            Settings = CEnvir.WindowSettings.Binding.FirstOrDefault(x => x.Resolution == Config.GameSize && x.Window == Type);
-
+            base.ApplySettings();
+            Size viewport = Parent?.Size ?? Config.GameSize;
+            Location = new Point(Math.Clamp(Location.X, 0, Math.Max(0, viewport.Width - Size.Width)),
+                                 Math.Clamp(Location.Y, 0, Math.Max(0, viewport.Height - Size.Height)));
             if (Settings != null)
             {
-                ApplySettings();
-                return;
+                Settings.Size = Size;
+                Settings.Location = Location;
             }
-
-            Settings = CEnvir.WindowSettings.CreateNewObject();
-            Settings.Resolution = Config.GameSize;
-            Settings.Window = Type;
-            Settings.Size = Size;
-            Settings.Visible = Visible;
-            Settings.Location = Location;
         }
-
-        public void ApplySettings()
-        {
-            if (Settings == null) return;
-
-            Location = Settings.Location;
-
-            Visible = Settings.Visible;
-        }
-
 
         #endregion
 
         public InventoryDialog()
         {
-            LibraryFile = LibraryFile.Interface;
-            Index = 130;
-            Movable = true;
-            Sort = true;
             DropShadow = true;
-
-            CloseButton = new DXButton
-            {
-                Parent = this,
-                Index = 15,
-                LibraryFile = LibraryFile.Interface,
-                Hint = CEnvir.Language.CommonControlClose,
-                HintPosition = HintPosition.TopLeft
-            };
-            CloseButton.Location = new Point(DisplayArea.Width - CloseButton.Size.Width - 3, 3);
-            CloseButton.MouseClick += (o, e) => Visible = false;
-
-            TitleLabel = new DXWindowTitleLabel
-            {
-                Text = CEnvir.Language.InventoryDialogTitle,
-                Parent = this,
-            };
+            TitleLabel.Text = CEnvir.Language.InventoryDialogTitle + $" ({Globals.InventorySize})";
 
             Grid = new DXItemGrid
             {
-                GridSize = new Size(6, 8),
+                GridSize = new Size(13, Globals.InventorySize / 13),
                 Parent = this,
                 ItemGrid = GameScene.Game.Inventory,
                 GridType = GridType.Inventory,
                 Location = new Point(20, 39),
                 GridPadding = 1,
-                BackColour = Color.Empty,
-                Border = false
+                BackColour = Color.FromArgb(24, 12, 12),
+                Border = true,
+                BorderColour = Color.FromArgb(92, 65, 35)
             };
 
             foreach (DXItemCell cell in Grid.Grid)
@@ -212,13 +155,17 @@ namespace Client.Scenes.Views
                 cell.SelectedChanged += Cell_SelectedChanged;
             }
 
+            int footerY = Grid.Location.Y + Grid.Size.Height + 12;
+            Size = new Size(Grid.Size.Width + 40, footerY + 96);
             CEnvir.LibraryList.TryGetValue(LibraryFile.GameInter, out MirLibrary library);
 
             DXControl WeightBar = new DXControl
             {
                 Parent = this,
-                Location = new Point(53, 355),
-                Size = library.GetSize(360),
+                Location = new Point(20, footerY),
+                Size = library?.GetSize(360) ?? new Size(192, 14),
+                DrawTexture = true,
+                BackColour = Color.FromArgb(40, 30, 20),
             };
             WeightBar.BeforeDraw += (o, e) =>
             {
@@ -254,21 +201,21 @@ namespace Client.Scenes.Views
                 ForeColour = Color.Goldenrod,
                 DrawFormat = TextFormatFlags.VerticalCenter | TextFormatFlags.Left,
                 Parent = this,
-                Location = new Point(55, 381),
+                Location = new Point(20, footerY + 22),
                 Font = new Font(Config.FontName, CEnvir.FontSize(8F), FontStyle.Bold),
                 Text = CEnvir.Language.InventoryDialogPrimaryCurrencyTitle,
-                Size = new Size(97, 20)
+                Size = new Size(72, 20)
             };
 
             PrimaryCurrencyLabel = new DXLabel
             {
                 AutoSize = false,
                 ForeColour = Color.White,
-                DrawFormat = TextFormatFlags.VerticalCenter | TextFormatFlags.Right,
+                DrawFormat = TextFormatFlags.VerticalCenter | TextFormatFlags.Left,
                 Parent = this,
-                Location = new Point(80, 381),
+                Location = new Point(80, footerY + 22),
                 Text = "0",
-                Size = new Size(97, 20)
+                Size = new Size(200, 20)
             };
             PrimaryCurrencyLabel.MouseClick += PrimaryCurrencyLabel_MouseClick;
 
@@ -278,21 +225,21 @@ namespace Client.Scenes.Views
                 ForeColour = Color.DarkOrange,
                 DrawFormat = TextFormatFlags.VerticalCenter | TextFormatFlags.Left,
                 Parent = this,
-                Location = new Point(55, 400),
+                Location = new Point(20, footerY + 44),
                 Font = new Font(Config.FontName, CEnvir.FontSize(8F), FontStyle.Bold),
                 Text = CEnvir.Language.InventoryDialogSecondaryCurrencyTitle,
-                Size = new Size(97, 20)
+                Size = new Size(72, 20)
             };
 
             SecondaryCurrencyLabel = new DXLabel
             {
                 AutoSize = false,
                 ForeColour = Color.White,
-                DrawFormat = TextFormatFlags.VerticalCenter | TextFormatFlags.Right,
+                DrawFormat = TextFormatFlags.VerticalCenter | TextFormatFlags.Left,
                 Parent = this,
-                Location = new Point(80, 400),
+                Location = new Point(80, footerY + 44),
                 Text = "0",
-                Size = new Size(97, 20)
+                Size = new Size(180, 20)
             };
             SecondaryCurrencyLabel.MouseClick += SecondaryCurrencyLabel_MouseClick;
 
@@ -301,27 +248,36 @@ namespace Client.Scenes.Views
                 LibraryFile = LibraryFile.GameInter,
                 Index = 364,
                 Parent = this,
-                Location = new Point(180, 384),
+                Location = new Point(Size.Width - 60, footerY - 6),
                 Hint = CEnvir.Language.InventoryDialogSortButtonHint
             };
             SortButton.MouseClick += SortButton_MouseClick;
 
             TrashButton = new DXButton
             {
-                LibraryFile = LibraryFile.GameInter,
-                Index = 358,
+                ButtonType = ButtonType.SmallButton,
                 Parent = this,
-                Location = new Point(218, 384),
-                Hint = CEnvir.Language.InventoryDialogTrashButtonHint
+                Size = new Size(120, SmallButtonHeight),
+                Location = new Point(Size.Width - 140, footerY + 34),
+                Label = { Text = "DEL: WYŁ.", ForeColour = Color.LightGreen },
+                Hint = "Bezpiecznik DEL. Kliknij, aby włączyć lub wyłączyć usuwanie pod kursorem."
             };
             TrashButton.MouseClick += TrashButton_MouseClick;
+            UndoDeleteButton = new DXButton
+            {
+                Parent = this, ButtonType = ButtonType.SmallButton, Size = new Size(120, SmallButtonHeight),
+                Location = new Point(Size.Width - 140, footerY + 58),
+                Label = { Text = "Cofnij" }, Visible = false,
+                Hint = "Odzyskaj ostatni usunięty przedmiot. Każdy przedmiot można odzyskać przez 45 sekund."
+            };
+            UndoDeleteButton.MouseClick += (o,e) => { if (e.Button == MouseButtons.Left && !GameScene.Game.Observer) CEnvir.Enqueue(new C.ItemRecover()); };
 
             SellButton = new DXButton
             {
                 LibraryFile = LibraryFile.GameInter,
                 Index = 354,
                 Parent = this,
-                Location = new Point(218, 384),
+                Location = new Point(Size.Width - 60, footerY + 24),
                 Hint = "Sell All",
                 Enabled = true,
                 Visible = false
@@ -332,12 +288,20 @@ namespace Client.Scenes.Views
             {
                 Parent = this,
                 AutoSize = false,
-                Location = new Point(8, 380),
+                Location = new Point(20, footerY + 66),
+                Text = CEnvir.Language.CurrencyDialogTitle,
+                ForeColour = Color.Gold,
                 Hint = string.Format(CEnvir.Language.InventoryDialogWalletLabelHint, CEnvir.GetKeyBindLabel(KeyBindAction.CurrencyWindow)),
-                Size = new Size(45, 40),
+                Size = new Size(240, 20),
                 Sound = SoundIndex.GoldPickUp
             };
+            WalletLabel.DrawFormat = TextFormatFlags.VerticalCenter | TextFormatFlags.Left;
             WalletLabel.MouseClick += WalletLabel_MouseClick;
+            PrimaryCurrencyTitle.TextChanged += (o, e) => ArrangeCurrencyRows();
+            SecondaryCurrencyTitle.TextChanged += (o, e) => ArrangeCurrencyRows();
+            PrimaryCurrencyTitle.FontChanged += (o, e) => ArrangeCurrencyRows();
+            SecondaryCurrencyTitle.FontChanged += (o, e) => ArrangeCurrencyRows();
+            ArrangeCurrencyRows();
         }
 
         private void SortButton_MouseClick(object sender, MouseEventArgs e)
@@ -348,23 +312,63 @@ namespace Client.Scenes.Views
             CEnvir.Enqueue(packet);
         }
 
+        private void ArrangeCurrencyRows()
+        {
+            if (PrimaryCurrencyLabel == null || SecondaryCurrencyLabel == null) return;
+            int footerY = Grid.Location.Y + Grid.Size.Height + 12;
+            ArrangeCurrencyRow(PrimaryCurrencyTitle, PrimaryCurrencyLabel, footerY + 22);
+            ArrangeCurrencyRow(SecondaryCurrencyTitle, SecondaryCurrencyLabel, footerY + 44);
+        }
+
+        private void ArrangeCurrencyRow(DXLabel title, DXLabel amount, int y)
+        {
+            int titleWidth = Math.Clamp(DXLabel.GetSize(title.Text, title.Font, title.Outline).Width + 4, 24, 120);
+            title.Location = new Point(20, y);
+            title.Size = new Size(titleWidth, 20);
+            amount.Location = new Point(title.Location.X + titleWidth + 8, y);
+            amount.Size = new Size(Math.Max(100, Size.Width - 140 - amount.Location.X), 20);
+        }
+
+        public override void OnKeyDown(KeyEventArgs e)
+        {
+            if (!IsVisible || !IsEnabled) return;
+            if (e.KeyCode == Keys.Delete && e.Modifiers == Keys.None && DXTextBox.ActiveTextBox == null &&
+                DeleteEnabled && TrashButton.IsVisible && MouseControl is DXItemCell hovered && Grid.Grid.Contains(hovered))
+            {
+                DeleteItem(hovered);
+                e.Handled = true;
+                e.SuppressKeyPress = true;
+                return;
+            }
+            base.OnKeyDown(e);
+        }
+
         private void TrashButton_MouseClick(object sender, MouseEventArgs e)
         {
+            if (e.Button != MouseButtons.Left || GameScene.Game.Observer) return;
+            DeleteEnabled = !DeleteEnabled;
+            TrashButton.Label.Text = DeleteEnabled ? "DEL: AKTYWNY" : "DEL: WYŁ.";
+            TrashButton.Label.ForeColour = DeleteEnabled ? Color.OrangeRed : Color.LightGreen;
+        }
+
+        public void UpdateRecycleState(int count, int seconds)
+        {
+            recycleCount = count;
+            UndoDeleteButton.Visible = count > 0 && InvMode == InventoryMode.Normal;
+            UndoDeleteButton.Enabled = seconds > 0;
+            UndoDeleteButton.Label.Text = $"Cofnij ({seconds}s)";
+            UndoDeleteButton.Hint = $"Do odzyskania: {count}. Kliknij, aby przywrócić ostatni. Każdy znika po 45 sekundach.";
+        }
+
+        private void DeleteItem(DXItemCell cell)
+        {
             if (GameScene.Game.Observer) return;
-
-            var cell = DXItemCell.SelectedCell;
-
-            if (cell == null || cell.Item == null) return;
+            if (cell == null || cell.Item == null || cell.Locked || cell.ReadOnly || !cell.IsEnabled) return;
             if ((cell.Item.Flags & UserItemFlags.Locked) == UserItemFlags.Locked) return;
             if ((cell.Item.Flags & UserItemFlags.Marriage) == UserItemFlags.Marriage) return;
-
             if (cell.GridType != GridType.Inventory) return;
-
             cell.Locked = true;
-
-            C.ItemDelete packet = new C.ItemDelete { Grid = cell.GridType, Slot = cell.Slot };
-
-            CEnvir.Enqueue(packet);
+            CEnvir.Enqueue(new C.ItemDelete { Grid = cell.GridType, Slot = cell.Slot });
         }
 
         private void Cell_SelectedChanged(object sender, EventArgs e)
@@ -567,6 +571,7 @@ namespace Client.Scenes.Views
         public void OnInventoryModeChanged(InventoryMode oValue, InventoryMode nValue)
         {
             TrashButton.Visible = false;
+            UndoDeleteButton.Visible = false;
             SellButton.Visible = false;
 
             DXItemCell.SelectedCell = null;
@@ -578,8 +583,9 @@ namespace Client.Scenes.Views
                         RefreshCurrency();
 
                         TrashButton.Visible = true;
+                        UndoDeleteButton.Visible = recycleCount > 0;
 
-                        TitleLabel.Text = CEnvir.Language.InventoryDialogTitle;
+                        TitleLabel.Text = CEnvir.Language.InventoryDialogTitle + $" ({Globals.InventorySize})";
                     }
                     break;
                 case InventoryMode.Sell:
@@ -590,7 +596,7 @@ namespace Client.Scenes.Views
 
                         SellButton.Visible = true;
 
-                        TitleLabel.Text = CEnvir.Language.InventoryDialogTitle + " [Sell]";
+                        TitleLabel.Text = CEnvir.Language.InventoryDialogTitle + $" ({Globals.InventorySize}) [Sell]";
                     }
                     break;
             }

@@ -880,7 +880,7 @@ namespace Client.Scenes
                     Checked = Config.RememberDetails,
                 };
                 RememberCheckBox.Location = new Point(NewAccountButton.Location.X + 5, 38);
-                RememberCheckBox.CheckedChanged += (o, e) => Config.RememberDetails = RememberCheckBox.Checked;
+                RememberCheckBox.CheckedChanged += (o, e) => LoginDetailsStore.SetEnabled(RememberCheckBox.Checked);
 
                 ForgotPasswordLabel = new DXLabel()
                 {
@@ -896,7 +896,7 @@ namespace Client.Scenes
                 if (Config.RememberDetails)
                 {
                     EMailTextBox.TextBox.Text = Config.RememberedEMail;
-                    PasswordTextBox.TextBox.Text = Config.RememberedPassword;
+                    PasswordTextBox.TextBox.Text = LoginDetailsStore.RestorePassword();
                 }
             }
 

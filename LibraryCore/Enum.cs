@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 
 namespace Library
@@ -43,25 +43,6 @@ namespace Library
         PvP = 3,
         [Description("Pet: None")]
         None = 4,
-    }
-
-    public enum GroupLootMode : byte
-    {
-        [Description("Free For All")]
-        FreeForAll,
-        [Description("Random")]
-        Random,
-        [Description("Need / Greed")]
-        NeedGreed,
-        [Description("Round Robin")]
-        RoundRobin,
-    }
-
-    public enum GroupLootVote : byte
-    {
-        Pass,
-        Greed,
-        Need,
     }
 
     public enum MirDirection : byte
@@ -238,8 +219,7 @@ namespace Library
         SocketCombine1,
         SocketCombine2,
         SocketCombine3,
-        SocketCombineResult,
-        GroupLoot
+        SocketCombineResult
     }
 
     public enum InventoryMode
@@ -1915,6 +1895,9 @@ namespace Library
         FundsMerchant = 32,
         FundsMarket = 64,
         StartWar = 128,
+        FragmentDeposit = 256,
+        FragmentWithdraw = 512,
+        FragmentAssemble = 1024,
     }
 
     public enum NPCRequirementType

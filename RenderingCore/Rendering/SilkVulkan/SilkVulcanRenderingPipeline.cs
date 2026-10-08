@@ -412,8 +412,9 @@ namespace Shared.Rendering.SilkVulkan
 
         private void EnsureValidGameSize()
         {
-            IReadOnlyList<Size> supported = GetSupportedResolutions();
             Size configured = RenderingPipelineManager.HostSettings.GameSize;
+            if (!RenderingPipelineManager.HostSettings.FullScreen && configured.Width >= 1024 && configured.Height >= 720) return;
+            IReadOnlyList<Size> supported = GetSupportedResolutions();
             if (supported.Count == 0 || supported.Contains(configured))
                 return;
 

@@ -52,7 +52,7 @@ namespace Server.Envir
                 SEnvir.Log(string.Format("Crashed: Account: {0}, Character: {1}.", Account?.EMailAddress, Player?.Name));
                 SEnvir.Log(e.ToString());
                 SEnvir.Log(e.StackTrace.ToString());
-                File.AppendAllText(@".\Errors.txt", e.StackTrace + Environment.NewLine);
+                File.AppendAllText("./Errors.txt", e.StackTrace + Environment.NewLine);
             };
 
             SEnvir.Log(string.Format("[Connection] IP Address:{0}", IPAddress));
@@ -550,6 +550,11 @@ namespace Server.Envir
 
             Player.ItemSort(p);
         }
+        public void Process(C.ItemRecover p)
+        {
+            if (Stage == GameStage.Game) Player.RecoverDeletedItem();
+        }
+
         public void Process(C.ItemDelete p)
         {
             if (Stage != GameStage.Game) return;
@@ -566,7 +571,7 @@ namespace Server.Envir
         {
             if (Stage != GameStage.Game) return;
 
-            Player.PickUp(p.ObjectID);
+            Player.PickUp();
         }
         public void Process(C.CurrencyDrop p)
         {
@@ -780,7 +785,6 @@ namespace Server.Envir
             if (p.Receive)
             {
                 Player.SendLFGList();
-                Player.SendGroupLootUpdate();
             }
         }
 
@@ -796,34 +800,6 @@ namespace Server.Envir
             if (Stage != GameStage.Game) return;
 
             Player.LFGUpdate(p);
-        }
-
-        public void Process(C.GroupLootSettings p)
-        {
-            if (Stage != GameStage.Game) return;
-
-            Player.SetGroupLootSettings(p);
-        }
-
-        public void Process(C.GroupLootShare p)
-        {
-            if (Stage != GameStage.Game) return;
-
-            Player.StartGroupLootShare();
-        }
-
-        public void Process(C.GroupLootTake p)
-        {
-            if (Stage != GameStage.Game) return;
-
-            Player.TakeGroupLoot(p.ItemIndex);
-        }
-
-        public void Process(C.GroupLootVote p)
-        {
-            if (Stage != GameStage.Game) return;
-
-            Player.SubmitGroupLootVote(p.ItemIndex, p.Vote);
         }
 
         public void Process(C.Inspect p)
@@ -1207,6 +1183,12 @@ namespace Server.Envir
             if (Stage != GameStage.Game) return;
 
             Player.TradeConfirm();
+        }
+
+        public void Process(C.GuildFragmentOperation p)
+        {
+            if (Stage != GameStage.Game) return;
+            Player.GuildFragmentOperation(p);
         }
 
         public void Process(C.GuildCreate p)

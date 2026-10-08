@@ -630,7 +630,12 @@ namespace Shared.Rendering
             if (_activePipeline == null)
                 throw new InvalidOperationException("No rendering pipeline has been initialized.");
 
-            return _activePipeline.GetSupportedResolutions();
+            IReadOnlyList<Size> modes = _activePipeline.GetSupportedResolutions();
+            Size requested = Settings.GameSize;
+            // A window size is not a hardware display mode. Preserve the player's viewport.
+            if (!Settings.FullScreen && requested.Width >= 1024 && requested.Height >= 720 && !modes.Contains(requested))
+                return modes.Concat(new[] { requested }).OrderBy(x => (long)x.Width * x.Height).ToArray();
+            return modes;
         }
 
         public static Size MeasureText(string text, Font font)

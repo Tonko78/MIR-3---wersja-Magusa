@@ -1,4 +1,4 @@
-﻿using Client.Controls;
+using Client.Controls;
 using Client.Envir;
 using Client.Scenes;
 using Client.Scenes.Views;
@@ -21,6 +21,7 @@ namespace Client
         [STAThread]
         static void Main(string[] args)
         {
+            Directory.SetCurrentDirectory(AppContext.BaseDirectory);
             Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
             ConfigReader.Load(Assembly.GetAssembly(typeof(Config)));
 

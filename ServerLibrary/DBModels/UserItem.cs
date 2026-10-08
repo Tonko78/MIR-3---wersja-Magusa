@@ -11,6 +11,16 @@ namespace Server.DBModels
     [UserObject]
     public sealed class UserItem : DBObject
     {
+        [Association("RecycledItems")]
+        public CharacterInfo RecycleOwner { get => _RecycleOwner; set { if (_RecycleOwner == value) return; var old = _RecycleOwner; _RecycleOwner = value; OnChanged(old, value, nameof(RecycleOwner)); } }
+        private CharacterInfo _RecycleOwner;
+        
+        public DateTime RecycleExpiresUtc { get => _RecycleExpiresUtc; set { if (_RecycleExpiresUtc == value) return; var old = _RecycleExpiresUtc; _RecycleExpiresUtc = value; OnChanged(old, value, nameof(RecycleExpiresUtc)); } }
+        private DateTime _RecycleExpiresUtc;
+        
+        public int RecycleOriginalSlot { get => _RecycleOriginalSlot; set { if (_RecycleOriginalSlot == value) return; var old = _RecycleOriginalSlot; _RecycleOriginalSlot = value; OnChanged(old, value, nameof(RecycleOriginalSlot)); } }
+        private int _RecycleOriginalSlot;
+
         public ItemInfo Info
         {
             get { return _Info; }

@@ -24,6 +24,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\LibraryCore\LibraryCore.csproj" />
+    <ProjectReference Include="..\Launcher.Core\Launcher.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="DevExpress.Win" Version="25.2.6" />
@@ -31,6 +32,5 @@
     <PackageReference Include="DevExpress.Win.Design" Version="25.2.6" />
     <PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />
     <PackageReference Include="System.Data.SqlClient" Version="4.9.0" />
-    <PackageReference Include="WinSCP" Version="6.3.6" />
   </ItemGroup>
 </Project>

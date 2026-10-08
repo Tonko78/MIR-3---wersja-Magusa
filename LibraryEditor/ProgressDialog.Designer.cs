@@ -126,8 +126,8 @@ namespace LibraryEditor
             // 
             // ProgressDialog
             // 
-            AutoScaleDimensions = new SizeF(96F, 96F);
-            AutoScaleMode = AutoScaleMode.Dpi;
+            AutoScaleDimensions = new SizeF(7F, 15F);
+            AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(520, 214);
             ControlBox = false;
             Controls.Add(_messageLabel);
