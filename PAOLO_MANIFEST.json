@@ -24,8 +24,8 @@
   },
   "merge_kit": {
     "branch": "paolo-merge",
-    "branch_head": "11a30a1",
-    "branch_head_note": "11a30a1 = tip gałęzi, jedyny commit nad bazą 4cc883d, drzewo = tip main (5b77cb2). Bot: git fetch <repo> paolo-merge && git merge FETCH_HEAD (albo git am merge-kit/MIR3-magus-changes.patch na 4cc883d). Zawiera: mody Magusa + fix inwentarza + fix Summon* + pet EXP (A, L1-L15) + schowek petów 20 slotów + trwałe usunięcie + max 4 aktywni (B+C).",
+    "branch_head": "4cc883d (baza) — tip gałęzi = jedyny commit NAD tą bazą; bot: git fetch <repo> paolo-merge daje tip (hash) automatycznie",
+    "branch_head_note": "paolo-merge = dokładnie 1 commit nad bazą 4cc883d; jego drzewo = pełny tip main (mody Magusa + fix inwentarza + fix Summon* + pet EXP A (L1-L15) + schowek 20 slotów / max 4 aktywni / trwałe usuwanie B+C + ten manifest). Bot: git fetch <repo> paolo-merge && git merge FETCH_HEAD — tip (hash) przychodzi z fetcha, nie jest tu hardkodowany. Alternatywnie: git am -3 merge-kit/MIR3-magus-changes.patch na 4cc883d.",
     "composition": "4cc883d + Paolo's 10 uncommitted changes + Magus full main + inventory fix",
     "conflicts_resolved": [
       {
