@@ -1,4 +1,4 @@
-﻿using Client.Controls;
+using Client.Controls;
 using Client.Envir;
 using Client.Models;
 using Client.Scenes.Views;
@@ -983,7 +983,8 @@ namespace Client.Scenes
 
             GuildMemberBox.Location = new Point((uiSize.Width - GuildMemberBox.Size.Width) / 2, (uiSize.Height - GuildMemberBox.Size.Height) / 2);
 
-            InventoryBox.Location = new Point(uiSize.Width - InventoryBox.Size.Width, MiniMapBox.Size.Height);
+            InventoryBox.Location = new Point(Math.Max(0, uiSize.Width - InventoryBox.Size.Width),
+                Math.Min(MiniMapBox.Size.Height, Math.Max(0, uiSize.Height - InventoryBox.Size.Height)));
 
             CharacterBox.Location = Point.Empty;
 
@@ -1015,7 +1016,7 @@ namespace Client.Scenes
 
             GroupBox.Location = new Point((uiSize.Width - GroupBox.Size.Width) / 2, (uiSize.Height - GroupBox.Size.Height) / 2);
 
-            StorageBox.Location = new Point(uiSize.Width - StorageBox.Size.Width - InventoryBox.Size.Width, 0);
+            StorageBox.Location = new Point(Math.Max(0, uiSize.Width - StorageBox.Size.Width - InventoryBox.Size.Width), 0);
 
             AutoPotionBox.Location = new Point((uiSize.Width - AutoPotionBox.Size.Width) / 2, (uiSize.Height - AutoPotionBox.Size.Height) / 2);
 

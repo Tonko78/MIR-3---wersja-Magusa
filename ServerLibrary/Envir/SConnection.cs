@@ -52,7 +52,7 @@ namespace Server.Envir
                 SEnvir.Log(string.Format("Crashed: Account: {0}, Character: {1}.", Account?.EMailAddress, Player?.Name));
                 SEnvir.Log(e.ToString());
                 SEnvir.Log(e.StackTrace.ToString());
-                File.AppendAllText(@".\Errors.txt", e.StackTrace + Environment.NewLine);
+                File.AppendAllText("./Errors.txt", e.StackTrace + Environment.NewLine);
             };
 
             SEnvir.Log(string.Format("[Connection] IP Address:{0}", IPAddress));
@@ -550,6 +550,11 @@ namespace Server.Envir
 
             Player.ItemSort(p);
         }
+        public void Process(C.ItemRecover p)
+        {
+            if (Stage == GameStage.Game) Player.RecoverDeletedItem();
+        }
+
         public void Process(C.ItemDelete p)
         {
             if (Stage != GameStage.Game) return;
@@ -1178,6 +1183,12 @@ namespace Server.Envir
             if (Stage != GameStage.Game) return;
 
             Player.TradeConfirm();
+        }
+
+        public void Process(C.GuildFragmentOperation p)
+        {
+            if (Stage != GameStage.Game) return;
+            Player.GuildFragmentOperation(p);
         }
 
         public void Process(C.GuildCreate p)

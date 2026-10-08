@@ -1,0 +1,48 @@
+﻿<!DOCTYPE html>
+<html lang="@CultureInfo.CurrentUICulture.TwoLetterISOLanguageName">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="@PortalText.Pick("Mir3 Zircon registration and client portal", "Portal rejestracji i klienta Mir3 Zircon")" />
+    <title>@ViewData["Title"] | Mir3 Zircon</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/Mir3.Web.styles.css" asp-append-version="true" />
+</head>
+<body class="site-body">
+    <header class="site-header">
+        <nav class="shell site-nav" aria-label="@PortalText.Pick("Primary navigation", "Nawigacja główna")">
+            <a class="brand" asp-area="" asp-page="/Index" aria-label="@PortalText.Pick("Mir3 Zircon home", "Mir3 Zircon — strona główna")"><span class="brand__mark">M3</span><span><strong>MIR3</strong><small>ZIRCON</small></span></a>
+            <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="primary-navigation">
+                <span class="sr-only">@PortalText.Pick("Toggle navigation", "Przełącz nawigację")</span><span aria-hidden="true">☰</span>
+            </button>
+            <div class="site-nav__links" id="primary-navigation">
+                <a asp-area="" asp-page="/Index">@PortalText.Pick("Home", "Strona główna")</a>
+                <a asp-area="" asp-page="/Register">@PortalText.Pick("Register", "Rejestracja")</a>
+                <a href="/download">@PortalText.Pick("Download", "Pobieranie")</a>
+                <a asp-area="" asp-page="/Privacy">@PortalText.Pick("Privacy", "Prywatność")</a>
+                <a href="https://mir3wiki.swoojeff.online/" target="_blank" rel="noopener noreferrer">Wiki</a>
+                <form class="lang-switch" method="post" action="/language" role="group" aria-label="Language / Język">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="returnUrl" value="@(ViewData["LanguageReturnUrl"] as string ?? $"{Context.Request.PathBase}{Context.Request.Path}{Context.Request.QueryString}")" />
+                    <button type="submit" name="language" value="pl-PL" lang="pl" aria-pressed="@(CultureInfo.CurrentUICulture.Name == "pl-PL" ? "true" : "false")">PL</button>
+                    <button type="submit" name="language" value="en-US" lang="en" aria-pressed="@(CultureInfo.CurrentUICulture.Name == "en-US" ? "true" : "false")">EN</button>
+                </form>
+            </div>
+        </nav>
+    </header>
+    <main id="main-content" class="shell site-main" role="main">
+            @RenderBody()
+    </main>
+
+    <footer class="site-footer">
+        <div class="shell site-footer__inner">
+            <span>&copy; 2026 Mir3 Zircon</span>
+            <span><a asp-area="" asp-page="/Privacy">@PortalText.Pick("Privacy", "Prywatność")</a><span aria-hidden="true"> · </span><a asp-area="" asp-page="/Register">@PortalText.Pick("Join the realm", "Dołącz do świata")</a></span>
+        </div>
+    </footer>
+
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

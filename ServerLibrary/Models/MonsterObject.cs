@@ -760,6 +760,8 @@ namespace Server.Models
                 Stats[Stat.Agility] += Stats[Stat.Agility] * SummonLevel / 10;
             }
 
+            ApplyCombatPetStats();
+
             GrowthLevel = Math.Min(Globals.MaxGrowthLevel, Math.Max(0, Stats[Stat.GrowthLevel]));
 
             if (GrowthLevel > 0)
@@ -1102,7 +1104,7 @@ namespace Server.Models
         }
         public override void ProcessNameColour()
         {
-            NameColour = Color.White;
+            NameColour = IsCombatPet ? CombatPetNameColour : Color.White;
 
             if (SEnvir.Now < ShockTime)
                 NameColour = Color.Peru;
@@ -1140,6 +1142,10 @@ namespace Server.Models
         {
             base.OnDespawned();
 
+            if (!PreserveCombatPetOnDespawn) ForgetCombatPet();
+            SavedCombatPet = null;
+            combatPetAttackers.Clear();
+
             Master?.MinionList.Remove(this);
             Master = null;
 
@@ -1161,6 +1167,7 @@ namespace Server.Models
 
         public void UnTame()
         {
+            ResetCombatPetProgress();
             PetOwner?.Pets.Remove(this);
             PetOwner = null;
             Target = null;
@@ -1175,10 +1182,13 @@ namespace Server.Models
         }
         public void PetRecall()
         {
+            if (PetOwner?.CurrentCell == null || Dead) return;
             Cell cell = PetOwner.CurrentMap.GetCell(Functions.Move(PetOwner.CurrentLocation, PetOwner.Direction, -1));
 
             if (cell == null || cell.Movements != null)
-                cell = PetOwner.CurrentCell;
+                cell = PetOwner.CurrentMap.GetCells(PetOwner.CurrentLocation, 0, 2).FirstOrDefault(x => x.Movements == null);
+
+            if (cell == null) return;
 
             Teleport(PetOwner.CurrentMap, cell.Location);
 
@@ -2612,7 +2622,10 @@ namespace Server.Models
                     BuffRemove(buff);
             }
             else
+            {
+                RecordCombatPetHit(attacker, power);
                 ChangeHP(-power);
+            }
 
             var chainPoison = PoisonList.FirstOrDefault(x => x.Type == PoisonType.Chain);
 
@@ -2653,9 +2666,13 @@ namespace Server.Models
 
         public override void Die()
         {
+            if (Dead) return;
+            ForgetCombatPet();
             base.Die();
 
             TriggerVengeance();
+
+            RewardCombatPets();
 
             YieldReward();
 
@@ -3301,6 +3318,7 @@ namespace Server.Models
                 Location = CurrentLocation,
 
                 NameColour = NameColour,
+                CustomName = CombatPetDisplayName,
                 Direction = Direction,
                 Dead = Dead,
 

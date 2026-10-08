@@ -1,4 +1,4 @@
-# Networking
+﻿# Networking
 
 ## Start here
 
@@ -80,3 +80,5 @@ SystemDBSync's caller is **`Server/Views/SyncForm.cs`**, which posts the editor 
 4. Delegate player behavior to PlayerObject/the appropriate partial; preserve synchronous state ownership.
 5. If needed, add an S packet and `public void Process(S.NewUpdate p)` in CConnection; update the correct model and dialog.
 6. Audit wire IDs/properties, enum values, observer visibility, rejection/lock release, lifecycle cancellation and matched builds.
+
+Item recovery: C.ItemRecover -> PlayerObject.RecoverDeletedItem; S.ItemRecovered restores the exact instance at its authoritative inventory slot (never via the merging ItemsGained path); S.ItemRecycleState updates the inventory undo countdown. Pet labels use ObjectMonster.CustomName and ObjectPetOwnerChanged.CustomName. Deploy matching client/server/LibraryCore builds.

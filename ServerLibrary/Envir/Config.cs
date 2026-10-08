@@ -5,7 +5,7 @@ using System.Security.Cryptography;
 
 namespace Server.Envir
 {
-    [ConfigPath(@".\Server.ini")]
+    [ConfigPath("Server.ini")]
     public static class Config
     {
         [ConfigSection("Network")]
@@ -20,11 +20,11 @@ namespace Server.Envir
 
         [ConfigSection("System")]
         public static bool CheckVersion { get; set; } = true;
-        public static string VersionPath { get; set; } = @".\Zircon.dll";
+        public static string VersionPath { get; set; } = "./Zircon.dll";
 
-        public static string MapPath { get; set; } = @".\Map\";
+        public static string MapPath { get; set; } = "./Map/";
         public static byte[] ClientHash;
-        public static string MasterPassword { get; set; } = @"REDACTED";
+        public static string MasterPassword { get; set; } = string.Empty;
         public static string SyncKey { get; set; } = "REDACTED";
         public static string ClientPath { get; set; }
         public static DateTime ReleaseDate { get; set; } = new DateTime(2017, 12, 22, 18, 00, 00, DateTimeKind.Utc);
@@ -118,6 +118,17 @@ namespace Server.Envir
         public static TimeSpan HarvestDuration { get; set; } = TimeSpan.FromMinutes(5);
         public static int MysteryShipRegionIndex { get; set; } = 0;
         public static int LairRegionIndex { get; set; } = 0;
+
+        [ConfigSection("CombatPets")]
+        public static int ElectricShockPetDurationHours { get; set; } = 0;
+        public static int CombatPetMaxCount { get; set; } = 20;
+        public static int CombatPetMaxActiveCount { get; set; } = 4;
+        public static bool PersistCombatPets { get; set; } = true;
+        public static bool CombatPetExperienceEnabled { get; set; } = true;
+        public static int CombatPetMaxLevel { get; set; } = 15;
+        public static int CombatPetExperiencePerKill { get; set; } = 100;
+        public static int CombatPetExperiencePerLevel { get; set; } = 1000;
+        public static int CombatPetStatBonusPerLevel { get; set; } = 5;
 
         [ConfigSection("Items")]
         public static TimeSpan DropDuration { get; set; } = TimeSpan.FromMinutes(60);

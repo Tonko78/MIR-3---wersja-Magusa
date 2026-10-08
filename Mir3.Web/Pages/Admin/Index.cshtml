@@ -1,0 +1,105 @@
+@page
+@model Mir3.Web.Pages.Admin.IndexModel
+@{
+    ViewData["Title"] = PortalText.Pick("Administrator dashboard", "Panel administratora");
+}
+
+<div class="admin-shell">
+    @Html.AntiForgeryToken()
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1>@PortalText.Pick("Administrator dashboard", "Panel administratora")</h1>
+            <p class="text-muted mb-0">@PortalText.Pick("Registration workflow and account queue.", "Rejestracje i kolejka kont.")</p>
+        </div>
+        <a asp-page="/Admin/Settings" class="btn btn-outline-secondary">@PortalText.Pick("Settings", "Ustawienia")</a>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.Message))
+    {
+        <div class="alert alert-info" role="status">@Model.Message</div>
+    }
+
+    <section aria-labelledby="registrations-heading">
+        <h2 id="registrations-heading">@PortalText.Pick("Registrations", "Rejestracje")</h2>
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col">E-mail</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">@PortalText.Pick("Updated", "Zaktualizowano")</th>
+                        <th scope="col">@PortalText.Pick("Actions", "Działania")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var registration in Model.Dashboard.Registrations)
+                {
+                    <tr>
+                        <td>@registration.Email</td>
+                        <td>
+                            <span class="@registration.BadgeClass" data-status="@registration.Status" title="@PortalText.AdminStatusLabel(registration.Status, registration.StatusLabel)">
+                                <span aria-hidden="true">@registration.BadgeIcon</span>
+                                @PortalText.AdminStatusLabel(registration.Status, registration.StatusLabel)
+                            </span>
+                        </td>
+                        <td><time datetime="@registration.UpdatedUtc.ToString("O")">@registration.UpdatedUtc.ToUniversalTime().ToString("u")</time></td>
+                        <td>
+                            @if (registration.Status is RegistrationStatus.AwaitingAdmin or RegistrationStatus.Disabled)
+                            {
+                                <form method="post" asp-page-handler="Activate" class="d-inline-flex gap-1 align-items-center">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="RegistrationId" value="@registration.Id" />
+                                    <label class="visually-hidden" for="activate-confirm-@registration.Id">@PortalText.Pick("Type CONFIRM to activate", "Wpisz CONFIRM, aby aktywować")</label>
+                                    <input id="activate-confirm-@registration.Id" name="ConfirmText" class="form-control form-control-sm" placeholder="CONFIRM" autocomplete="off" />
+                                    <button type="submit" class="btn btn-sm btn-success">@PortalText.Pick("Activate", "Aktywuj")</button>
+                                </form>
+                            }
+                            @if (registration.Status == RegistrationStatus.Active)
+                            {
+                                <form method="post" asp-page-handler="Deactivate" class="d-inline-flex gap-1 align-items-center">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="RegistrationId" value="@registration.Id" />
+                                    <label class="visually-hidden" for="deactivate-confirm-@registration.Id">@PortalText.Pick("Type CONFIRM to deactivate", "Wpisz CONFIRM, aby wyłączyć")</label>
+                                    <input id="deactivate-confirm-@registration.Id" name="ConfirmText" class="form-control form-control-sm" placeholder="CONFIRM" autocomplete="off" />
+                                    <button type="submit" class="btn btn-sm btn-danger">@PortalText.Pick("Deactivate", "Wyłącz")</button>
+                                </form>
+                                <form method="post" asp-page-handler="ResetPassword" class="d-inline-flex gap-1 align-items-center">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="RegistrationId" value="@registration.Id" />
+                                    <label class="visually-hidden" for="reset-password-@registration.Id">@PortalText.Pick("New password", "Nowe hasło")</label>
+                                    <input id="reset-password-@registration.Id" name="NewPassword" type="password" class="form-control form-control-sm" placeholder="@PortalText.Pick("New password", "Nowe hasło")" autocomplete="new-password" minlength="5" maxlength="15" required />
+                                    <label class="visually-hidden" for="reset-password-confirm-@registration.Id">@PortalText.Pick("Confirm new password", "Potwierdź nowe hasło")</label>
+                                    <input id="reset-password-confirm-@registration.Id" name="ConfirmPassword" type="password" class="form-control form-control-sm" placeholder="@PortalText.Pick("Repeat password", "Powtórz hasło")" autocomplete="new-password" minlength="5" maxlength="15" required />
+                                    <button type="submit" class="btn btn-sm btn-warning">@PortalText.Pick("Reset password", "Zresetuj hasło")</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section aria-labelledby="audit-heading" class="mt-5">
+        <h2 id="audit-heading">@PortalText.Pick("Audit log", "Dziennik zdarzeń")</h2>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr><th scope="col">@PortalText.Pick("When", "Kiedy")</th><th scope="col">@PortalText.Pick("Actor", "Wykonawca")</th><th scope="col">@PortalText.Pick("Action", "Działanie")</th><th scope="col">@PortalText.Pick("Target", "Cel")</th></tr>
+                </thead>
+                <tbody>
+                @foreach (var audit in Model.Dashboard.AuditEntries)
+                {
+                    <tr>
+                        <td><time datetime="@audit.CreatedUtc.ToString("O")">@audit.CreatedUtc.ToUniversalTime().ToString("u")</time></td>
+                        <td>@audit.Actor</td>
+                        <td>@PortalText.AdminAuditAction(audit.Action)</td>
+                        <td>@audit.Target</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>

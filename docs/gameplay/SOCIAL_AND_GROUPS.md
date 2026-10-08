@@ -48,3 +48,22 @@ Start at the selected feature's anchors; packet lists are entry points, not exha
 * **Server / UI:** P Marriage region and relevant SConnection appearance/fortune handlers; Views NPCDialog.cs wedding-ring UI, EditCharacterDialog.cs, FortuneCheckerDialog.cs; client PlayerObject equipment/shape rendering.
 * **Packets / flow:** C.MarriageResponse/MakeRing/Teleport → S.MarriageInvite/Info/MakeRing; C.HairChange/ArmourDye/NameChange/CaptionChange and FortuneCheck → feature responses and appearance updates.
 * **Start here:** P MarriageJoin/MarriageMakeRing or SConnection requested handler; DB CharacterInfo; relevant dialog; client PlayerObject for appearance.
+
+### Guild fragments
+
+Client/Scenes/Views/GuildDialog.Fragments.cs owns the separate guild parts tab.
+GuildFragmentOperation dispatches through SConnection to PlayerObject.GuildFragments.cs;
+GuildFragmentState sends the authoritative capacity, revision and contents to members.
+GuildFragmentStorage.cs plans deposits and recipe debits before applying them.
+
+GuildInfo.FragmentStorageSize persists the separate capacity. Existing UserItem.Guild
+ownership is retained; slots 1000–1499 identify parts and slots 0–999 retain the normal
+warehouse. GuildInfo.OnLoaded restores both arrays and initializes missing legacy capacity.
+Recipes reuse UserItem.Stats[Stat.ItemIndex] and target ItemInfo.PartCount, matching normal
+ItemPart assembly. The result enters normal guild storage. Rights FragmentDeposit,
+FragmentWithdraw and FragmentAssemble are independent of Storage; the leader has all
+rights. Mutations execute synchronously in the simulation loop under a guild gate, and
+stale revisions are rejected. Both client and server must use the updated shared packets.
+
+Run Tests/GuildFragmentChecks for handler, replay, two-client, packet and MirDB checks;
+test the new tab on a staging server before deployment.

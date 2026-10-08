@@ -1,0 +1,18 @@
+@page
+@model Mir3.Web.Pages.StatusModel
+@{
+    ViewData["Title"] = PortalText.Pick("Registration status", "Status rejestracji");
+}
+
+<section class="page-intro" aria-labelledby="status-heading">
+    <p class="eyebrow">@PortalText.Pick("REGISTRATION TRACKER", "ŚLEDZENIE REJESTRACJI")</p>
+    <h1 id="status-heading">@PortalText.Pick("Registration status", "Status rejestracji")</h1>
+    <p class="status-badge @Model.StatusBadgeClass"><span class="status-icon" aria-hidden="true">@Model.StatusIcon</span><span>@Model.PublicStatus</span></p>
+</section>
+<div class="panel compact-panel">
+    @if (!string.IsNullOrWhiteSpace(Model.EmailAddress))
+    {
+        <p class="status-note status-note--info"><strong>@PortalText.Pick("E-mail address:", "Adres e-mail:")</strong> @Model.EmailAddress</p>
+    }
+    <p class="status-note status-note--info" role="status"><span class="status-icon" aria-hidden="true">i</span><span>@Model.Message</span></p>
+</div>

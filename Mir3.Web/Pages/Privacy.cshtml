@@ -1,0 +1,16 @@
+﻿@page
+@model PrivacyModel
+@{
+    ViewData["Title"] = PortalText.Pick("Privacy Policy", "Polityka prywatności");
+}
+<section class="page-intro" aria-labelledby="privacy-heading">
+    <p class="eyebrow">@PortalText.Pick("THE SMALL PRINT", "WAŻNE INFORMACJE")</p>
+    <h1 id="privacy-heading">@PortalText.Pick("Privacy policy", "Polityka prywatności")</h1>
+    <p>@PortalText.Pick("We use the information you provide to operate registration, send verification e-mail, and manage your game account.", "Wykorzystujemy podane dane do obsługi rejestracji, wysyłania e-maili weryfikacyjnych i zarządzania kontem w grze.")</p>
+</section>
+<section class="prose panel" aria-label="@PortalText.Pick("Privacy details", "Szczegóły prywatności")">
+    <h2>@PortalText.Pick("What we keep", "Jakie dane przechowujemy")</h2>
+    <p>@PortalText.Pick("Your e-mail address, password hash, verification state, and account workflow history. Passwords are never stored in plaintext.", "Adres e-mail, skrót hasła, stan weryfikacji i historię obsługi konta. Nigdy nie przechowujemy haseł w postaci jawnej.")</p>
+    <h2>@PortalText.Pick("Why we use it", "Po co je wykorzystujemy")</h2>
+    <p>@PortalText.Pick("Registration data is used only to provide the Mir3 service, protect the queue, and communicate important account events.", "Dane rejestracji służą wyłącznie do świadczenia usługi Mir3, ochrony kolejki i przekazywania ważnych informacji o koncie.")</p>
+</section>

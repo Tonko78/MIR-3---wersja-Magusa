@@ -73,6 +73,8 @@ All paths below are under `LibraryCore/SystemModels/`; several files contain mul
 
 `ServerLibrary/Envir/SEnvir.cs` owns simulation Session and its explicit system/user collection fields (`CharacterInfoList`, `UserItemList`, etc.). `Server/SMain.cs` creates its own System-mode editor Session. Do not treat editor bindings as the live simulation's object references; inspect save/reload behavior for a proposed live-edit change.
 
+Combat pets use the server-only [UserCombatPet](../ServerLibrary/DBModels/UserCombatPet.cs) `[UserObject]` model. `CharacterInfo.CombatPets` and `UserCombatPet.Character` share the `CombatPets` association; the character end is aggregate. The collection is discovered with the ServerLibrary assembly and accessed through `Session.GetCollection<UserCombatPet>()`. Existing characters load with an empty collection; model setters use `OnChanged`. [PlayerObject.CombatPets](../ServerLibrary/Models/PlayerObject.CombatPets.cs) converts records to live monsters through `GetMonster`/`Spawn`, preserving definition references rather than serializing runtime objects. Save/reload, deletion and old-schema checks are in [CombatPetChecks](../Tests/CombatPetChecks/CombatPetChecks.csproj).
+
 Needs verification: compatibility with any particular deployed System.db/Users.db requires those database files and a migration roundtrip; source inspection alone cannot establish their contents.
 
 ## Other serialization boundaries
@@ -80,3 +82,5 @@ Needs verification: compatibility with any particular deployed System.db/Users.d
 * Session reads/writes through `LibraryCore/Encryption.cs`. With a key configured, its writer uses AES and prepends an IV; the reader uses its existing header detection and requires the key for encrypted input. `Server/Views/DatabaseEncryptionForm.cs` initializes a Both-mode session and rewrites using the selected key. This is database encoding, not game-packet encryption. Type/namespace changes must account for the reader's header detection as well as DBMapping type names.
 * `LibraryCore/ConfigReader.cs` discovers `[ConfigPath]` classes, `[ConfigSection]` properties and `[ConfigPropertyIgnore]`, reading/writing section/key text. Renaming a config property/section affects the file key; inspect its conversion and culture handling, not MirDB attributes. Canonical declarations: `Client/Envir/Config.cs`, `ServerLibrary/Envir/Config.cs`.
 * Image containers and patch manifests have independent formats and paired readers/writers; see [RENDERING_AND_ASSETS](RENDERING_AND_ASSETS.md) and [CONTENT_AND_EDITORS](CONTENT_AND_EDITORS.md).
+
+45-second deleted-item recovery: UserItem.RecycleOwner (CharacterInfo.RecycledItems association), RecycleExpiresUtc and RecycleOriginalSlot. Pending items are outside inventory/storage; expiry purges globally in the server environment loop. See PlayerObject.Recycle.cs.

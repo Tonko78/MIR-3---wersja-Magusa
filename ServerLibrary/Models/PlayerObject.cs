@@ -301,6 +301,7 @@ namespace Server.Models
         public override void Process()
         {
             base.Process();
+            ProcessRecycleState();
 
             // if (LastHitter != null && LastHitter.Node == null) LastHitter = null;
             if (GroupInvitation != null && GroupInvitation.Node == null) GroupInvitation = null;
@@ -1000,8 +1001,12 @@ namespace Server.Models
                 SpellList[i].Despawn();
             SpellList.Clear();
 
+            SaveCombatPets();
             for (int i = Pets.Count - 1; i >= 0; i--)
+            {
+                Pets[i].PreserveCombatPetOnDespawn = Pets[i].SavedCombatPet != null;
                 Pets[i].Despawn();
+            }
             Pets.Clear();
 
             for (int i = Connection.Observers.Count - 1; i >= 0; i--)
@@ -1136,6 +1141,8 @@ namespace Server.Models
             PauseBuffs();
 
             SendLFGList();
+
+            RestoreCombatPets();
 
             if (SEnvir.TopRankings.Contains(Character))
                 BuffAdd(BuffType.Ranking, TimeSpan.MaxValue, null, true, false, TimeSpan.Zero);
@@ -1478,6 +1485,10 @@ namespace Server.Models
             {
                 SEnvir.EventHandler.Process(this, "PLAYERMOVEREGION");
             }
+
+            if (PreviousCell?.Map != CurrentMap || CombatPetSlotCount > Pets.Count ||
+                Pets.Any(pet => pet.IsCombatPet && !pet.Dead && pet.Node != null && pet.CurrentMap != CurrentMap))
+                RecallCombatPets();
         }
 
         public override void OnDespawned()
@@ -1537,6 +1548,15 @@ namespace Server.Models
         public void Chat(string text, List<int> linkedItemIndexes = null)
         {
             if (string.IsNullOrEmpty(text)) return;
+
+            // Pet storage command (/pety) — handled before whisper routing.
+            if (text.StartsWith("/pety", StringComparison.OrdinalIgnoreCase))
+            {
+                string arg = text.StartsWith("/pety ", StringComparison.OrdinalIgnoreCase) ? text.Substring(6).Trim() : "";
+                PetCommand(arg);
+                return;
+            }
+
             SEnvir.LogChat($"{Name}: {text}");
 
             //Item Links
@@ -1708,7 +1728,7 @@ namespace Server.Models
             }
             else if (text.StartsWith("@!"))
             {
-                if (!Character.Account.TempAdmin) return;
+                if (!Character.Account.IsAdmin(includeTemp: true)) return;
 
                 text = string.Format("{0}: {1}", Name, text.Remove(0, 2));
 
@@ -8085,9 +8105,16 @@ namespace Server.Models
             if ((item.Flags & UserItemFlags.Locked) == UserItemFlags.Locked) return;
             if ((item.Flags & UserItemFlags.Marriage) == UserItemFlags.Marriage) return;
 
+            if (Observer || TradeItems.ContainsKey(item)) return;
+            int originalSlot = item.Slot;
             RemoveItem(item);
+            item.RecycleOwner = Character;
+            item.RecycleOriginalSlot = originalSlot;
+            item.RecycleExpiresUtc = DateTime.UtcNow.AddSeconds(45);
             array[p.Slot] = null;
+            RefreshWeight();
             result.Success = true;
+            SendRecycleState();
         }
         public long GetItemCount(ItemInfo info)
         {
@@ -16181,6 +16208,8 @@ namespace Server.Models
                 Pets[i].Die();
 
             Pets.Clear();
+            foreach (UserCombatPet record in Character.CombatPets.ToArray())
+                record.Delete();
 
             if (Buffs.Any(x => x.Type == BuffType.SoulResonance))
                 SoulResonance.Activate(this);

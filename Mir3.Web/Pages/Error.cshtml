@@ -1,0 +1,16 @@
+﻿@page
+@model ErrorModel
+@{
+    ViewData["Title"] = PortalText.Pick("Error", "Błąd");
+}
+
+<section class="page-intro" aria-labelledby="error-heading">
+    <p class="eyebrow">@PortalText.Pick("SIGNAL LOST", "UTRACONO POŁĄCZENIE")</p>
+    <h1 id="error-heading">@PortalText.Pick("We hit an unexpected fault.", "Wystąpił nieoczekiwany błąd.")</h1>
+    <p class="status-note status-note--error" role="alert"><span class="status-icon" aria-hidden="true">!</span><span>@PortalText.Pick("The request could not be completed. Please try again.", "Nie udało się zrealizować żądania. Spróbuj ponownie.")</span></p>
+</section>
+
+@if (Model.ShowRequestId)
+{
+    <div class="panel compact-panel"><p class="muted">@PortalText.Pick("If you contact support, include request ID", "Kontaktując się z pomocą techniczną, podaj identyfikator żądania") <code>@Model.RequestId</code>.</p></div>
+}

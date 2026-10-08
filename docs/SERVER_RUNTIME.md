@@ -104,3 +104,5 @@ Use the [simple and complex monster examples](CANONICAL_EXAMPLES.md#simple-monst
 * `Models/AutoPath/MonsterObject.AutoPath.cs` supplies monster pathing behavior; it is another partial of MonsterObject, not a second monster class.
 
 A target-selection-only change usually stays here. New action/projectile/appearance semantics require [CLIENT_RUNTIME](CLIENT_RUNTIME.md), the S object-action packets and the client MonsterObject image/animation cases.
+
+PlayerObject.Recycle.cs owns the persistent 45-second recovery window. SEnvir's environment loop calls PurgeExpiredRecycledItems; per-player Process sends changed countdown state once per second.

@@ -1,4 +1,4 @@
-﻿using Library;
+using Library;
 using Library.SystemModels;
 using MirDB;
 using Server.Envir;
@@ -271,6 +271,22 @@ namespace Server.DBModels
         }
         private int _Flag;
 
+        public int FragmentStorageSize
+        {
+            get => _FragmentStorageSize;
+            set
+            {
+                if (_FragmentStorageSize == value) return;
+                int old = _FragmentStorageSize;
+                _FragmentStorageSize = value;
+                OnChanged(old, value, nameof(FragmentStorageSize));
+            }
+        }
+        private int _FragmentStorageSize;
+
+        public readonly object FragmentGate = new object();
+        public long FragmentRevision;
+        public UserItem[] FragmentStorage = new UserItem[GuildFragmentSettings.MaxCapacity];
         public UserItem[] Storage = new UserItem[1000];
 
         [Association("Members", true)]
@@ -306,7 +322,10 @@ namespace Server.DBModels
 
                 Members = Members.Select(x => x.ToClientInfo()).ToList(),
 
-                Storage = Items.Select(x => x.ToClientInfo()).ToList(),
+                Storage = Items.Where(x => x.Slot >= 0 && x.Slot < GuildFragmentSettings.SlotOffset).Select(x => x.ToClientInfo()).ToList(),
+                FragmentStorage = FragmentStorage.Where(x => x != null).Select(x => x.ToClientInfo()).ToList(),
+                FragmentStorageLimit = FragmentStorageSize,
+                FragmentRevision = FragmentRevision,
             };
         }
 
@@ -314,8 +333,17 @@ namespace Server.DBModels
         {
             base.OnLoaded();
 
+            // Older Users.db has no capacity column. Allocate the initial capacity on first load.
+            if (FragmentStorageSize <= 0) FragmentStorageSize = GuildFragmentSettings.InitialCapacity;
             foreach (UserItem item in Items)
             {
+                int fragmentSlot = item.Slot - GuildFragmentSettings.SlotOffset;
+                if (fragmentSlot >= 0 && fragmentSlot < FragmentStorage.Length)
+                {
+                    FragmentStorage[fragmentSlot] = item;
+                    FragmentStorageSize = Math.Max(FragmentStorageSize, fragmentSlot + 1);
+                    continue;
+                }
                 if (item.Slot < 0 || item.Slot >= Storage.Length)
                 {
                     SEnvir.Log(string.Format("[BAD ITEM] Guild: {0}, Slot: {1}", GuildName, item.Slot));
@@ -330,6 +358,7 @@ namespace Server.DBModels
         {
             base.OnCreated();
 
+            FragmentStorageSize = GuildFragmentSettings.InitialCapacity;
             DefaultRank = "New Member";
             DefaultPermission = GuildPermission.None;
 

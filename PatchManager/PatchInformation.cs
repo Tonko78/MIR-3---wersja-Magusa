@@ -1,16 +1,13 @@
-﻿using System.IO;
+﻿using Launcher.Core;
+using System.IO;
 using System.Security.Cryptography;
 
 namespace PatchManager
 {
-    public sealed class PatchInformation
+    public sealed class PatchInformation : PatchManifestEntry
     {
-        public string FileName { get; set; }
-
         public string UploadFileName { get; set; }
         public string PatchFileName { get; set; }
-        public long CompressedLength { get; set; }
-        public byte[] CheckSum { get; set; }
 
         public PatchInformation()//FileInfo
         {
@@ -25,20 +22,6 @@ namespace PatchManager
                 using (FileStream stream = File.OpenRead(fileName))
                     CheckSum = md5.ComputeHash(stream);
             }
-        }
-        public PatchInformation(BinaryReader reader)
-        {
-            FileName = reader.ReadString();
-            CompressedLength = reader.ReadInt64();
-
-            CheckSum = reader.ReadBytes(reader.ReadInt32());
-        }
-        public void Save(BinaryWriter writer)
-        {
-            writer.Write(FileName);
-            writer.Write(CompressedLength);
-            writer.Write(CheckSum.Length);
-            writer.Write(CheckSum);
         }
     }
 }

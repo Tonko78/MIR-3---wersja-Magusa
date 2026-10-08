@@ -11,6 +11,9 @@ namespace Server.DBModels
     [UserObject]
     public sealed class CharacterInfo : DBObject
     {
+        [Association("RecycledItems", true)]
+        public DBBindingList<UserItem> RecycledItems { get; set; }
+
         [Association("Characters")]
         public AccountInfo Account
         {
@@ -677,6 +680,9 @@ namespace Server.DBModels
 
         [Association("Magics", true)]
         public DBBindingList<UserMagic> Magics { get; set; }
+
+        [Association("CombatPets", true)]
+        public DBBindingList<UserCombatPet> CombatPets { get; set; }
 
         [Association("Buffs", true)]
         public DBBindingList<BuffInfo> Buffs { get; set; }

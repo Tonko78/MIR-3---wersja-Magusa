@@ -84,7 +84,8 @@ namespace Server.Models.Magics
                 return;
             }
 
-            if (Player.Pets.Count >= 3) return;
+            Player.RestoreCombatPets();
+            if (Player.CombatPetSlotCount >= CombatPetSettings.MaxCount || Player.ActiveCount >= CombatPetSettings.MaxActive) return;
 
             if (SEnvir.Random.Next(4) > 0) return;
 
@@ -96,6 +97,8 @@ namespace Server.Models.Magics
                 ob.Die();
                 return;
             }
+
+            ob.ResetCombatPetProgress();
 
             if (ob.PetOwner != null)
             {
@@ -119,17 +122,18 @@ namespace Server.Models.Magics
             ob.Master?.MinionList.Remove(ob);
             ob.Master = null;
 
-            ob.TameTime = SEnvir.Now.AddHours(Magic.Level + 1);
+            ob.TameTime = CombatPetSettings.TameDeadline();
             ob.Target = null;
             ob.RageTime = DateTime.MinValue;
             ob.ShockTime = DateTime.MinValue;
             ob.Magics.Add(Magic);
             ob.SummonLevel = Magic.Level;
             ob.RefreshStats();
+            Player.SaveCombatPet(ob);
 
             Player.LogMilestone(MilestoneType.PetTame, 1, monster: ob.MonsterInfo);
 
-            ob.Broadcast(new S.ObjectPetOwnerChanged { ObjectID = ob.ObjectID, PetOwner = Player.Name });
+            ob.BroadcastCombatPetProgress();
         }
     }
 }

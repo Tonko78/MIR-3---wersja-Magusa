@@ -240,6 +240,7 @@ namespace Library.Network.ServerPackets
     }
     public sealed class ObjectPetOwnerChanged : Packet
     {
+        public string CustomName { get; set; }
         public uint ObjectID { get; set; }
         public string PetOwner { get; set; }
     }
@@ -582,6 +583,17 @@ namespace Library.Network.ServerPackets
         public int NewSlot { get; set; }
 
         public bool Success { get; set; }
+    }
+
+    public sealed class ItemRecovered : Packet
+    {
+        public ClientUserItem Item { get; set; }
+    }
+
+    public sealed class ItemRecycleState : Packet
+    {
+        public int Count { get; set; }
+        public int SecondsRemaining { get; set; }
     }
 
     public sealed class ItemDelete : Packet
@@ -1005,6 +1017,14 @@ namespace Library.Network.ServerPackets
     {
         public string Notice { get; set; }
     }
+    public sealed class GuildFragmentState : Packet
+    {
+        public int Capacity { get; set; }
+        public long Revision { get; set; }
+        public List<ClientUserItem> Items { get; set; }
+        public string Message { get; set; }
+    }
+
     public sealed class GuildNewItem : Packet
     {
         public int Slot { get; set; }

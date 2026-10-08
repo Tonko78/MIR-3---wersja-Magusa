@@ -45,6 +45,8 @@ Repository inventory found these three check projects and no additional test pro
 
 ## Commands
 
+The server-only [CombatPetChecks](../Tests/CombatPetChecks/CombatPetChecks.csproj) covers participating-pet EXP, stat growth without healing, limits, actual logout, map transfer, the five Taoist summon handlers, ownership transfer, pet/owner death, MirDB round trips and blocked restore. Run `dotnet run --project Tests/CombatPetChecks/CombatPetChecks.csproj -c Release -- <empty-data-directory> [old-schema-database-copy]`. Use disposable copies: the check saves its databases, including the optional migration input. It uses synthetic maps and a headless player login fixture; graphical/live-content behavior still requires a test server.
+
 Examples from repository root, selected individually by the matrix:
 
 ```text

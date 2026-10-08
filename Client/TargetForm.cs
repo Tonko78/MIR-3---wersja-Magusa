@@ -1,4 +1,4 @@
-﻿using Client.Controls;
+using Client.Controls;
 using Client.Envir;
 using Client.Models;
 using Client.Scenes;
@@ -38,7 +38,7 @@ namespace Client
 
         public TargetForm()
         {
-            Text = Globals.ClientName;
+            Text = "Mir3 — Wersja Magusa";
             AutoScaleMode = AutoScaleMode.None;
             BackColor = Color.Black;
 
@@ -69,8 +69,10 @@ namespace Client
 
         public void ApplyWindowScale()
         {
-            Size logicalSize = DXControl.ActiveScene?.Size ?? Config.GameSize;
+            Size configuredGameSize = Config.GameSize;
+            Size logicalSize = DXControl.ActiveScene?.Size ?? configuredGameSize;
             RenderingPipelineManager.SetResolution(logicalSize);
+            if (DXControl.ActiveScene is not GameScene) Config.GameSize = configuredGameSize;
             Program.InvalidateUiRenderCaches();
             Invalidate();
         }

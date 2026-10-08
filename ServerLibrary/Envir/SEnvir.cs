@@ -217,6 +217,7 @@ namespace Server.Envir
         public static bool NetworkStarted { get; set; }
         public static bool Saving { get; private set; }
         public static Thread EnvirThread { get; private set; }
+        public static Action ExternalSecondProcess;
 
         public static DateTime Now, StartTime, LastWarTime;
 
@@ -399,10 +400,10 @@ namespace Server.Envir
 
         public static void LoadExperienceList()
         {
-            string path = @".\Config\ExperienceList.txt";
+            string path = "./Config/ExperienceList.txt";
             if (!File.Exists(path))
             {
-                if (!Directory.Exists(@".\Config")) Directory.CreateDirectory(@".\Config");
+                if (!Directory.Exists("./Config")) Directory.CreateDirectory("./Config");
                 using (StreamWriter file = new StreamWriter(path))
                 {
                     for (int i = 0; i < Globals.ExperienceList.Count; i++)
@@ -1403,6 +1404,7 @@ namespace Server.Envir
             while (Started)
             {
                 Now = Time.Now;
+                PlayerObject.PurgeExpiredRecycledItems(DateTime.UtcNow);
                 loopCount++;
 
                 try
@@ -1479,7 +1481,7 @@ namespace Server.Envir
 
                             Log(ex.Message);
                             Log(ex.StackTrace);
-                            File.AppendAllText(@".\Errors.txt", ex.StackTrace + Environment.NewLine);
+                            File.AppendAllText("./Errors.txt", ex.StackTrace + Environment.NewLine);
                         }
                     }
 
@@ -1581,6 +1583,15 @@ namespace Server.Envir
                         for (int i = ConquestWars.Count - 1; i >= 0; i--)
                             ConquestWars[i].Process();
 
+                        try
+                        {
+                            ExternalSecondProcess?.Invoke();
+                        }
+                        catch (Exception exception)
+                        {
+                            Log($"External second process failed with {exception.GetType().Name}.");
+                        }
+
                         if (Config.EnableWebServer)
                         {
                             WebServer.Process();
@@ -1625,7 +1636,7 @@ namespace Server.Envir
 
                     Log(ex.Message);
                     Log(ex.StackTrace);
-                    File.AppendAllText(@".\Errors.txt", ex.StackTrace + Environment.NewLine);
+                    File.AppendAllText("./Errors.txt", ex.StackTrace + Environment.NewLine);
 
                     Packet p = new G.Disconnect { Reason = DisconnectReason.Crashed };
                     for (int i = Connections.Count - 1; i >= 0; i--)
@@ -1802,6 +1813,8 @@ namespace Server.Envir
             if (Session == null) return;
 
             Saving = true;
+            foreach (PlayerObject player in Players.ToArray())
+                player.SaveCombatPets();
             Session.Save(false);
 
             WebServer.Save();
@@ -1837,8 +1850,8 @@ namespace Server.Envir
         }
         private static void WriteLogs()
         {
-            var logPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".\\Logs.txt"));
-            var chatLogPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".\\Chat Logs.txt"));
+            var logPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs.txt"));
+            var chatLogPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Chat Logs.txt"));
 
             List<string> lines = new List<string>();
             while (!Logs.IsEmpty)
@@ -3269,7 +3282,9 @@ namespace Server.Envir
         {
             AccountInfo account = null;
             bool admin = false;
-            if (!Globals.EMailRegex.IsMatch(p.EMailAddress) && p.Password == Config.MasterPassword)
+            if (!string.IsNullOrWhiteSpace(Config.MasterPassword) &&
+                !string.Equals(Config.MasterPassword, "REDACTED", StringComparison.OrdinalIgnoreCase) &&
+                !Globals.EMailRegex.IsMatch(p.EMailAddress) && p.Password == Config.MasterPassword)
             {
                 account = GetCharacter(p.EMailAddress)?.Account;
                 admin = true;
@@ -4090,7 +4105,7 @@ namespace Server.Envir
             {
                 if (++ErrorCount > 200 || String.Compare(ex, LastError, StringComparison.OrdinalIgnoreCase) == 0) return;
 
-                const string LogPath = @".\Errors\";
+                const string LogPath = "./Errors/";
 
                 LastError = ex;
 

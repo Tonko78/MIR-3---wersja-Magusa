@@ -6,11 +6,11 @@ namespace PatchManager
     public static class Config
     {
         [ConfigSection("Patcher")]
-        public static string CleanClient { get; set; } = @"C:\Zircon Server\Clients\Patch Files\";
-        public static string Host { get; set; } = @"ftp://ftp.zirconserver.com/";
-        public static bool UseLogin { get; set; } = true;
-        public static string Username { get; set; } = @"REDACTED";
-        public static string Password { get; set; } = @"REDACTED";
-        public static string Protocol { get; set; } = "Ftp";
+        public static string CleanClient { get; set; } = @".\Clean Client\";
+
+        // Local staging directory that ops/mir3-web/publish-patch.ps1 uploads
+        // to the public HTTPS patch origin. No credentials are stored here;
+        // server transfer happens over the operator's SSH session.
+        public static string PublishDirectory { get; set; } = @".\Publish\";
     }
 }

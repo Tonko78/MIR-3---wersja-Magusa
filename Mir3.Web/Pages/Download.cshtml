@@ -1,0 +1,85 @@
+@page "/download"
+@model DownloadModel
+@{
+    ViewData["Title"] = PortalText.Pick("Downloads", "Pobieranie");
+}
+
+<header class="page-intro download-intro">
+    <p class="eyebrow">@PortalText.Pick("MIR3 / ZIRCON · GET STARTED", "MIR3 / ZIRCON · PIERWSZE KROKI")</p>
+    <h1>@PortalText.Pick("Choose your way in.", "Wybierz swoją drogę.")</h1>
+    <p>@PortalText.Pick(
+        "Install the launcher for automatic HTTPS game downloads and repairs, or take the full client as a manual archive.",
+        "Zainstaluj launchera, aby automatycznie pobierać i naprawiać grę przez HTTPS, albo pobierz pełnego klienta jako archiwum.")</p>
+</header>
+
+<div class="download-options" aria-label="@PortalText.Pick("Download options", "Opcje pobierania")">
+    <section class="panel download-option download-option--recommended" aria-labelledby="launcher-heading">
+        <p class="eyebrow">@PortalText.Pick("01 / RECOMMENDED · WINDOWS", "01 / POLECANY · WINDOWS")</p>
+        <h2 id="launcher-heading">@PortalText.Pick("The easy route.", "Łatwa droga.")</h2>
+        <p>@PortalText.Pick(
+            "Install the small launcher for your Windows account. Open it to download and verify the game over HTTPS, then start playing. A Start-menu shortcut is included; the desktop shortcut is optional.",
+            "Zainstaluj małego launchera na swoje konto Windows. Otwórz go, aby pobrać i zweryfikować grę przez HTTPS, a potem zacznij grać. Skrót w menu Start jest w zestawie; skrót na pulpicie jest opcjonalny.")</p>
+        @if (Model.Launcher.IsAvailable)
+        {
+            <p class="download-option__meta">@Model.Launcher.ByteCount.ToString("N0") @PortalText.Pick("bytes · Version", "bajtów · Wersja") @Model.Launcher.Version</p>
+            <a class="button button--primary" href="/download/launcher">@PortalText.Pick("Download Windows installer", "Pobierz instalator Windows")</a>
+            <p class="download-option__hash">SHA-256 <code>@Model.Launcher.Sha256</code></p>
+        }
+        else
+        {
+            <p class="status-note status-note--unavailable" role="status">@PortalText.Pick("Installer temporarily unavailable", "Instalator chwilowo niedostępny")</p>
+        }
+        <p class="muted download-option__footnote">@PortalText.Pick(
+            "Requires Windows 10/11 (64-bit) and free space for the game download. The installer is unsigned and Windows may show a SmartScreen warning; verify its checksum before running it.",
+            "Wymaga systemu Windows 10/11 (64-bit) i wolnego miejsca na grę. Instalator nie jest podpisany — Windows może wyświetlić ostrzeżenie SmartScreen; zweryfikuj jego sumę kontrolną przed uruchomieniem.")</p>
+    </section>
+
+    <section class="panel download-option" aria-labelledby="archive-heading">
+        <p class="eyebrow">@PortalText.Pick("02 / MANUAL · ZIP", "02 / RĘCZNIE · ZIP")</p>
+        <h2 id="archive-heading">@PortalText.Pick("Take the whole world.", "Zabierz cały świat.")</h2>
+        <p>@PortalText.Pick(
+            "Complete client ZIP without launcher. Extract it to a folder and run Zircon.exe directly. This archive does not download patches or repair files automatically.",
+            "Pełny klient ZIP bez launchera. Wypakuj go do folderu i uruchom Zircon.exe. To archiwum nie pobiera łatek ani nie naprawia plików automatycznie.")</p>
+        @if (Model.Zip.IsAvailable)
+        {
+            <p class="download-option__meta">@Model.Zip.ByteCount.ToString("N0") @PortalText.Pick("bytes · Version", "bajtów · Wersja") @Model.Zip.Version</p>
+            <a class="button button--quiet" href="/download/client">@PortalText.Pick("Download client ZIP", "Pobierz klienta ZIP")</a>
+            <p class="download-option__hash">SHA-256 <code>@Model.Zip.Sha256</code></p>
+        }
+        else
+        {
+            <p class="status-note status-note--unavailable" role="status">@PortalText.Pick("ZIP temporarily unavailable", "ZIP chwilowo niedostępny")</p>
+        }
+        <p class="muted download-option__footnote">@PortalText.Pick(
+            "Extract the entire archive before launch; do not run the executable inside the ZIP preview.",
+            "Wypakuj całe archiwum przed uruchomieniem; nie uruchamiaj pliku wykonywalnego z podglądu ZIP.")</p>
+    </section>
+</div>
+
+<section class="download-legacy" aria-labelledby="legacy-heading">
+    <div>
+        <p class="eyebrow">@PortalText.Pick("ALTERNATE FORMAT", "ALTERNATYWNY FORMAT")</p>
+        <h2 id="legacy-heading">@PortalText.Pick("Prefer the original 7z?", "Wolisz oryginalne 7z?")</h2>
+        <p class="muted">@PortalText.Pick(
+            "The earlier client archive remains available. It may require an archive tool such as 7-Zip to extract.",
+            "Starsze archiwum klienta wciąż jest dostępne. Do wypakowania może być potrzebne narzędzie, np. 7-Zip.")</p>
+    </div>
+    @if (Model.Legacy.IsAvailable)
+    {
+        <div>
+            <a class="text-link" href="/download/client-7z">@PortalText.Pick("Download legacy 7z", "Pobierz starsze 7z") <span aria-hidden="true">↗</span></a>
+            <p class="download-option__hash">@Model.Legacy.ByteCount.ToString("N0") @PortalText.Pick("bytes · SHA-256", "bajtów · SHA-256") <code>@Model.Legacy.Sha256</code></p>
+        </div>
+    }
+    else
+    {
+        <p class="status-note status-note--unavailable" role="status">@PortalText.Pick("7z temporarily unavailable", "7z chwilowo niedostępny")</p>
+    }
+</section>
+
+<p class="muted download-cleanup">@PortalText.Pick(
+    "Uninstalling the launcher leaves your downloaded game and settings in place. After backing up any settings you want to keep, remove the remaining ",
+    "Odinstalowanie launchera pozostawia pobraną grę i ustawienia. Po zarchiwizowaniu ustawień, które chcesz zachować, usuń ręcznie pozostały folder ")
+    <code>%LOCALAPPDATA%\Programs\Mir3 Zircon</code>@PortalText.Pick(
+    " folder manually if you also want to delete the game data.",
+    ", jeśli chcesz też usunąć dane gry.")</p>

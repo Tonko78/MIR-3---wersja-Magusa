@@ -84,12 +84,22 @@ namespace Client.Controls
 
         #endregion
 
+        private bool synchronizingSettings;
+
+        private void PersistPreferences(object sender, EventArgs args)
+        {
+            if (!synchronizingSettings) ConfigReader.Save(typeof(Config).Assembly);
+        }
+
         public override void OnVisibleChanged(bool oValue, bool nValue)
         {
             base.OnVisibleChanged(oValue, nValue);
 
             if (!IsVisible) return;
 
+            synchronizingSettings = true;
+            try
+            {
             BringToFront();
 
             FullScreenCheckBox.Enabled = ActiveScene is GameScene;
@@ -188,6 +198,8 @@ namespace Client.Controls
             TargetNPCColourBox.BackColour = Config.TargetNPCColour;
             TargetPlayerFriendlyColourBox.BackColour = Config.TargetPlayerFriendlyColour;
             TargetPlayerEnemyColourBox.BackColour = Config.TargetPlayerEnemyColour;
+            }
+            finally { synchronizingSettings = false; }
         }
 
         public override void OnParentChanged(DXControl oValue, DXControl nValue)
@@ -1189,6 +1201,15 @@ namespace Client.Controls
             #endregion
 
             #endregion
+            // Attach after construction so initial control values never overwrite player preferences.
+            foreach (DXCheckBox box in new[] { FullScreenCheckBox, BorderlessCheckbox, VSyncCheckBox,
+                LimitFPSCheckBox, SmoothMoveCheckBox, ClipMouseCheckBox, DebugLabelCheckBox,
+                DrawParticlesCheckBox, DrawEffectsCheckBox, DrawWeatherCheckBox, ColourGradingCheckBox })
+                box.CheckedChanged += PersistPreferences;
+            foreach (DXComboBox box in new[] { RenderingPipelineComboBox, GameSizeComboBox,
+                WindowScaleComboBox, DefaultMonitorComboBox, LanguageComboBox, UIScaleComboBox })
+                box.SelectedItemChanged += PersistPreferences;
+            FontSizeBar.ValueChanged += PersistPreferences;
         }
 
         #region IDisposable

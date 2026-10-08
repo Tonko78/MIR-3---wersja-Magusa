@@ -1,0 +1,25 @@
+@page
+@model Mir3.Web.Pages.VerifyModel
+@{
+    ViewData["Title"] = PortalText.Pick("Verify your e-mail", "Zweryfikuj adres e-mail");
+}
+
+<section class="page-intro" aria-labelledby="verify-heading">
+    <p class="eyebrow">@PortalText.Pick("CHECKPOINT", "WERYFIKACJA")</p>
+    <h1 id="verify-heading">@PortalText.Pick("E-mail verification", "Weryfikacja adresu e-mail")</h1>
+    <div role="status" class="status-note status-note--info"><span class="status-icon" aria-hidden="true">i</span><span>@Model.Message</span></div>
+</section>
+
+@if (Model.RegistrationReference is { } registration)
+{
+    <div class="panel compact-panel">
+        <p class="muted">@PortalText.Pick("Your private status link is ready. Keep it bookmarked while your registration moves through the queue.", "Twój prywatny link do statusu jest gotowy. Zachowaj go, aby śledzić rejestrację.")</p>
+        <a class="text-link" asp-page="/Status" asp-route-registration="@registration">@PortalText.Pick("View registration status", "Sprawdź status rejestracji") <span aria-hidden="true">→</span></a>
+    </div>
+    @if (Model.CanResend)
+    {
+        <form method="post" asp-page-handler="Resend" asp-route-registration="@registration" class="inline-form">
+            <button type="submit" class="button button--quiet">@PortalText.Pick("Resend verification e-mail", "Wyślij e-mail weryfikacyjny ponownie")</button>
+        </form>
+    }
+}

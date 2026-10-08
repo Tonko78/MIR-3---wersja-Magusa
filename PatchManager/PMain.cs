@@ -1,13 +1,13 @@
-﻿using System;
+﻿using Launcher.Core;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using WinSCP;
+using System.Windows.Forms;
 
 namespace PatchManager
 {
@@ -21,7 +21,7 @@ namespace PatchManager
 
         public const string ReportDirectory = "Report";
 
-        public long TotalUpload, TotalProgress, CurrentProgress, TotalProgressPercent;
+        public long TotalUpload, TotalProgress, TotalProgressPercent;
         public long Speed;
         public bool Error;
 
@@ -34,11 +34,7 @@ namespace PatchManager
         private void PMain_Load(object sender, EventArgs e)
         {
             CleanClientButtonEdit.EditValue = Config.CleanClient;
-            HostTextEdit.EditValue = Config.Host;
-            UseLoginCheckEdit.EditValue = Config.UseLogin;
-            UsernameTextEdit.EditValue = Config.Username;
-            PasswordTextEdit.EditValue = Config.Password;
-            ProtocolDropDown.EditValue = Config.Protocol;
+            PublishDirectoryButtonEdit.EditValue = Config.PublishDirectory;
         }
 
         private void CleanClientButtonEdit_EditValueChanged(object sender, EventArgs e)
@@ -46,29 +42,9 @@ namespace PatchManager
             Config.CleanClient = (string)CleanClientButtonEdit.EditValue;
         }
 
-        private void HostTextEdit_EditValueChanged(object sender, EventArgs e)
+        private void PublishDirectoryButtonEdit_EditValueChanged(object sender, EventArgs e)
         {
-            Config.Host = (string)HostTextEdit.EditValue;
-        }
-
-        private void UseLoginCheckEdit_CheckedChanged(object sender, EventArgs e)
-        {
-            Config.UseLogin = (bool)UseLoginCheckEdit.EditValue;
-        }
-
-        private void UsernameTextEdit_EditValueChanged(object sender, EventArgs e)
-        {
-            Config.Username = (string)UsernameTextEdit.EditValue;
-        }
-
-        private void PasswordTextEdit_EditValueChanged(object sender, EventArgs e)
-        {
-            Config.Password = (string)PasswordTextEdit.EditValue;
-        }
-
-        private void ProtocolDropDown_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            Config.Protocol = (string)ProtocolDropDown.EditValue;
+            Config.PublishDirectory = (string)PublishDirectoryButtonEdit.EditValue;
         }
 
         private void UploadPatchButton_Click(object sender, EventArgs e)
@@ -80,12 +56,8 @@ namespace PatchManager
         private void InterfaceLock(bool enabled)
         {
             CleanClientButtonEdit.Enabled = enabled;
-            HostTextEdit.Enabled = enabled;
-            UseLoginCheckEdit.Enabled = enabled;
-            UsernameTextEdit.Enabled = enabled;
-            PasswordTextEdit.Enabled = enabled;
+            PublishDirectoryButtonEdit.Enabled = enabled;
             UploadPatchButton.Enabled = enabled;
-            ProtocolDropDown.Enabled = enabled;
         }
 
 
@@ -95,36 +67,45 @@ namespace PatchManager
 
             Progress<string> progress = new Progress<string>(s => StatusLabel.Text = s);
 
-            List<PatchInformation> currentVersion = await Task.Run(() => CreateVersion(progress));
-            List<PatchInformation> liveVersion = await Task.Run(() => GetPatchInformation(progress));
-
-            List<PatchInformation> patch = await Task.Run(() => CalculatePatch(currentVersion, liveVersion, progress));
-
-            Task task = Task.Run(() => UploadFiles(patch, progress));
-
-            while (!task.IsCompleted)
+            try
             {
-                await Task.Delay(TimeSpan.FromSeconds(1));
-                CreateSizeLabel();
+                List<PatchInformation> currentVersion = await Task.Run(() => CreateVersion(progress));
+                List<PatchInformation> liveVersion = await Task.Run(() => GetPatchInformation(progress));
+
+                List<PatchInformation> patch = await Task.Run(() => CalculatePatch(currentVersion, liveVersion, progress));
+
+                Task publishTask = Task.Run(() => PublishFiles(patch, currentVersion, progress));
+
+                while (!publishTask.IsCompleted)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(1));
+                    CreateSizeLabel();
+                }
+
+                await publishTask;
+
+                if (!Error)
+                    CreateReport(patch);
+
+                StatusLabel.Text = "Complete.";
+                UploadSizeLabel.Text = "Complete.";
+                UploadSpeedLabel.Text = "Complete.";
             }
-
-            InterfaceLock(true);
-
-            if (!Error)
+            catch (Exception ex)
             {
-                SaveVersion(currentVersion);
-                CreateReport(patch);
+                Error = true;
+                StatusLabel.Text = ex.Message;
             }
+            finally
+            {
+                if (Directory.Exists(".\\Patch\\"))
+                    Directory.Delete(".\\Patch\\", true);
 
-            if (Directory.Exists(".\\Patch\\"))
-                Directory.Delete(".\\Patch\\", true);
+                if (Directory.Exists(TempDownloadDirectory))
+                    Directory.Delete(TempDownloadDirectory, true);
 
-            if (Directory.Exists(TempDownloadDirectory))
-                Directory.Delete(TempDownloadDirectory, true);
-
-            StatusLabel.Text = "Complete.";
-            UploadSizeLabel.Text = "Complete.";
-            UploadSpeedLabel.Text = "Complete.";
+                InterfaceLock(true);
+            }
         }
 
         private void CreateSizeLabel()
@@ -173,40 +154,15 @@ namespace PatchManager
         }
 
 
-        private void OpenSession(Session session)
+        private string GetPublishDirectory()
         {
-            if (session.Opened) return;
+            string path = Path.GetFullPath(Config.PublishDirectory);
 
-            Uri uri = null;
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
 
-            if (!string.IsNullOrEmpty(Config.Host))
-            {
-                uri = new Uri(Config.Host);
-            }
-
-            if (!Protocol.TryParse(Config.Protocol, true, out Protocol protocol))
-            {
-                protocol = Protocol.Ftp;
-            }
-
-            SessionOptions sessionOptions = new SessionOptions
-            {
-                Protocol = protocol,
-                HostName = uri.Host,
-                UserName = Config.Username,
-                Password = Config.Password
-            };
-
-            if (sessionOptions.Protocol == Protocol.Sftp)
-            {
-                var fingerprint = session.ScanFingerprint(sessionOptions, "SHA-256");
-
-                sessionOptions.SshHostKeyFingerprint = fingerprint;
-            }
-
-            session.Open(sessionOptions);
+            return path;
         }
-
 
         private List<PatchInformation> CreateVersion(IProgress<string> progress)
         {
@@ -228,56 +184,47 @@ namespace PatchManager
             catch (Exception ex)
             {
                 progress.Report(ex.Message);
+                Error = true;
             }
 
             return null;
         }
+
         private List<PatchInformation> GetPatchInformation(IProgress<string> progress)
         {
-            using Session session = new Session();
-            OpenSession(session);
-
             try
             {
-                progress.Report("Downloading Patch Information");
+                string publishDirectory = GetPublishDirectory();
+                string manifestPath = Path.Combine(publishDirectory, PListFileName);
 
-                if (!Directory.Exists(TempDownloadDirectory))
-                    Directory.CreateDirectory(TempDownloadDirectory);
-
-                var rootPath = (new Uri(Config.Host)).AbsolutePath;
-
-                TransferOptions transferOptions = new TransferOptions
+                if (!File.Exists(manifestPath))
                 {
-                    TransferMode = TransferMode.Binary,
-                    OverwriteMode = OverwriteMode.Overwrite
-                };
-
-                if (!session.FileExists(Path.Combine(rootPath, PListFileName)))
-                {
-                    progress.Report("Patch Information Not Found");
-
+                    progress.Report("Patch Information Not Found, first publish.");
                     return null;
                 }
 
-                var result = session.GetFiles(Path.Combine(rootPath, PListFileName), Path.Combine(TempDownloadDirectory, PListFileName), options: transferOptions);
-                result.Check();
+                progress.Report("Reading Patch Information");
 
-                using BinaryReader reader = new BinaryReader(File.Open(Path.Combine(TempDownloadDirectory, PListFileName), FileMode.Open, FileAccess.Read));
+                using BinaryReader reader = new BinaryReader(File.Open(manifestPath, FileMode.Open, FileAccess.Read, FileShare.Read));
 
-                List<PatchInformation> list = new List<PatchInformation>();
-
-                while (reader.BaseStream.Position < reader.BaseStream.Length)
-                    list.Add(new PatchInformation(reader));
-
-                return list;
+                return PatchManifest.Read(reader)
+                    .Select(entry => new PatchInformation
+                    {
+                        FileName = entry.FileName,
+                        CompressedLength = entry.CompressedLength,
+                        CheckSum = entry.CheckSum,
+                    })
+                    .ToList();
             }
             catch (Exception ex)
             {
                 progress.Report(ex.Message);
+                Error = true;
             }
 
             return null;
         }
+
         private List<PatchInformation> CalculatePatch(List<PatchInformation> current, List<PatchInformation> live, IProgress<string> progress)
         {
             List<PatchInformation> patch = new List<PatchInformation>();
@@ -291,7 +238,7 @@ namespace PatchManager
                 PatchInformation file = current[i];
                 PatchInformation lFile = live?.FirstOrDefault(x => x.FileName == file.FileName);
 
-                if (lFile != null && IsMatch(lFile.CheckSum, file.CheckSum))
+                if (lFile != null && PatchManifest.IsMatch(lFile.CheckSum, file.CheckSum))
                 {
                     file.CompressedLength = lFile.CompressedLength;
                     return;
@@ -300,7 +247,7 @@ namespace PatchManager
                 if (!Directory.Exists(".\\Patch\\"))
                     Directory.CreateDirectory(".\\Patch\\");
 
-                string webFileName = file.FileName.Replace("\\", "-") + ".gz";
+                string webFileName = PatchPaths.ToWebFileName(file.FileName);
 
                 file.UploadFileName = ".\\Patch\\" + webFileName;
                 file.PatchFileName = Path.Combine(Directory.GetCurrentDirectory(), $"Patch\\{webFileName}");
@@ -318,83 +265,53 @@ namespace PatchManager
             return patch;
         }
 
-        private bool UploadFiles(List<PatchInformation> patch, IProgress<string> progress)
+        private void PublishFiles(List<PatchInformation> patch, List<PatchInformation> currentVersion, IProgress<string> progress)
         {
-            var rootPath = (new Uri(Config.Host)).AbsolutePath;
+            string publishDirectory = GetPublishDirectory();
+            string patchDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Patch");
 
-            using Session session = new Session();
-
+            long publishedBytes = 0;
             int current = 0;
 
-            session.FileTransferProgress += (o, e) =>
+            // Payloads first; the manifest is switched last so a launcher can
+            // never observe a manifest that points at half-copied payloads.
+            foreach (PatchInformation file in patch)
             {
-                Speed = e.CPS;
-
-                TotalProgress = (long)(e.OverallProgress * TotalUpload);
-                TotalProgressPercent = (long)(e.OverallProgress * 100);
-            };
-
-            session.FileTransferred += (o, e) =>
-            {
-                progress.Report($"Files Uploaded: {Interlocked.Increment(ref current)} of {patch.Count}");
-            };
-
-            OpenSession(session);
-
-            TransferOptions transferOptions = new TransferOptions
-            {
-                TransferMode = TransferMode.Binary,
-                OverwriteMode = OverwriteMode.Overwrite
-            };
-
-            if (!session.FileExists(rootPath))
-            {
-                session.CreateDirectory(rootPath);
+                string destination = Path.Combine(publishDirectory, Path.GetFileName(file.PatchFileName));
+                File.Copy(file.PatchFileName, destination, overwrite: true);
+                publishedBytes += file.CompressedLength;
+                TotalProgress = publishedBytes;
+                TotalProgressPercent = TotalUpload > 0 ? publishedBytes * 100 / TotalUpload : 100;
+                Speed = 0;
+                progress.Report($"Files Published: {Interlocked.Increment(ref current)} of {patch.Count}");
             }
 
-            var result = session.PutFilesToDirectory(".\\Patch\\", rootPath, options: transferOptions);
-            result.Check();
-
-            return true;
+            SaveVersion(currentVersion, publishDirectory, progress);
         }
 
-        private void SaveVersion(List<PatchInformation> current)
+        private void SaveVersion(List<PatchInformation> current, string publishDirectory, IProgress<string> progress)
         {
-            if (!Directory.Exists(".\\Patch\\"))
-                Directory.CreateDirectory(".\\Patch\\");
+            byte[] bytes;
 
             using (MemoryStream mStream = new MemoryStream())
-            using (BinaryWriter writer = new BinaryWriter(mStream))
             {
-                foreach (PatchInformation info in current)
-                    info.Save(writer);
+                using (BinaryWriter writer = new BinaryWriter(mStream, Encoding.UTF8, leaveOpen: true))
+                    PatchManifest.Write(writer, current);
 
-                var tempFilePath = Path.Combine(".\\Patch\\", PListFileName).Replace(@"\", "/");
-
-                File.WriteAllBytes(tempFilePath, mStream.ToArray());
-
-                var rootPath = (new Uri(Config.Host)).AbsolutePath;
-
-                using Session session = new Session();
-
-                session.FileTransferProgress += (o, e) =>
-                {
-                };
-
-                session.FileTransferred += (o, e) =>
-                {
-                };
-
-                OpenSession(session);
-
-                TransferOptions transferOptions = new TransferOptions
-                {
-                    TransferMode = TransferMode.Binary,
-                    OverwriteMode = OverwriteMode.Overwrite
-                };
-
-                var result = session.PutFileToDirectory(tempFilePath, rootPath, options: transferOptions);
+                bytes = mStream.ToArray();
             }
+
+            string manifestPath = Path.Combine(publishDirectory, PListFileName);
+            string temporaryPath = manifestPath + ".tmp";
+
+            // Switch the manifest atomically so launchers never read a
+            // partially written PList.Bin.
+            File.WriteAllBytes(temporaryPath, bytes);
+
+            if (File.Exists(manifestPath))
+                File.Replace(temporaryPath, manifestPath, destinationBackupFileName: null);
+            else
+                File.Move(temporaryPath, manifestPath);
         }
 
         private static void CreateReport(IEnumerable<PatchInformation> patch)
@@ -423,16 +340,6 @@ namespace PatchManager
 
 
         #region Helpers
-        public static bool IsMatch(byte[] a, byte[] b, long offSet = 0)
-        {
-            if (b == null || a == null || b.Length + offSet > a.Length || offSet < 0) return false;
-
-            for (int i = 0; i < b.Length; i++)
-                if (a[offSet + i] != b[i])
-                    return false;
-
-            return true;
-        }
         private static long Compress(string sourceFile, string destFile)
         {
             var dir = Path.GetDirectoryName(destFile);

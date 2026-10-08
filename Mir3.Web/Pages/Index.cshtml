@@ -1,0 +1,92 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = PortalText.Pick("Mir3 Zircon client portal", "Portal klienta Mir3 Zircon");
+}
+
+<section class="hero" aria-labelledby="hero-heading">
+    <p class="eyebrow">MIR3 / ZIRCON</p>
+    <h1 id="hero-heading">@PortalText.Pick("Return to the frontier.", "Wróć na pogranicze.")</h1>
+    <p class="hero__lede">@PortalText.Pick(
+        "A focused portal for the next chapter of Legend of Mir 3. Create your account, verify your e-mail, and keep your client ready.",
+        "Portal stworzony z myślą o kolejnym rozdziale Legend of Mir 3. Załóż konto, zweryfikuj swój adres e-mail i miej klienta zawsze gotowego.")</p>
+    <div class="action-row" aria-label="@PortalText.Pick("Portal actions", "Akcje portalu")">
+        <a class="button button--primary" href="/download/launcher">@PortalText.Pick("Download launcher installer", "Pobierz instalator launchera")</a>
+        <a class="button button--quiet" asp-page="/Register">@PortalText.Pick("Create an account", "Załóż konto")</a>
+    </div>
+</section>
+
+<section class="screenshots" aria-labelledby="screenshots-heading">
+    <div class="screenshots__intro">
+        <p class="eyebrow">@PortalText.Pick("IN THE WORLD", "W ŚWIECIE")</p>
+        <h2 id="screenshots-heading">@PortalText.Pick("See Mir before you enter.", "Zobacz Mir, zanim wejdziesz.")</h2>
+        <p>@PortalText.Pick(
+            "Explore the classic login screen and the world waiting beyond it.",
+            "Poznaj klasyczny ekran logowania i świat, który czeka za nim.")</p>
+    </div>
+    <div class="screenshot-grid">
+        <figure class="screenshot-card">
+            <a href="/images/mir3-login-screen.png" target="_blank" rel="noopener">
+                <img src="/images/mir3-login-screen.png" alt="@PortalText.Pick(
+                    "Legend of Mir 3 login screen with the dragon temple backdrop",
+                    "Ekran logowania Legend of Mir 3 ze smokiem w tle świątyni")" loading="lazy" />
+            </a>
+            <figcaption><span>01</span><strong>@PortalText.Pick("Choose your path", "Wybierz swoją ścieżkę")</strong><small>@PortalText.Pick(
+                "The Legend of Mir 3 login screen.",
+                "Ekran logowania Legend of Mir 3.")</small></figcaption>
+        </figure>
+        <figure class="screenshot-card">
+            <a href="/images/mir3-gameplay-screen.png" target="_blank" rel="noopener">
+                <img src="/images/mir3-gameplay-screen.png" alt="@PortalText.Pick(
+                    "Legend of Mir 3 gameplay in Bichon Town",
+                    "Rozgrywka w Legend of Mir 3 w Bichon Town")" loading="lazy" />
+            </a>
+            <figcaption><span>02</span><strong>@PortalText.Pick("Enter Bichon Town", "Wejdź do Bichon Town")</strong><small>@PortalText.Pick(
+                "Explore, fight, and build your legend.",
+                "Badaj, walcz i buduj swoją legendę.")</small></figcaption>
+        </figure>
+    </div>
+</section>
+
+<section class="panel download-panel" aria-labelledby="download-heading">
+    <div>
+        <p class="eyebrow">@PortalText.Pick("WINDOWS LAUNCHER", "LAUNCHER WINDOWS")</p>
+        <h2 id="download-heading">@PortalText.Pick(
+            "Install once. Enter Mir when ready.",
+            "Zainstaluj raz. Wejdź do Mir, gdy będziesz gotowy.")</h2>
+        <p class="muted">@(PortalText.Pick(
+            "The small installer adds the launcher to your Windows account. On first launch, it downloads and verifies the game over HTTPS; a complete ZIP without launcher is also on the ",
+            "Mały instalator dodaje launchera do Twojego konta Windows. Przy pierwszym uruchomieniu pobierze i zweryfikuje grę przez HTTPS; pełny ZIP bez launchera znajdziesz na stronie ")
+            )<a href="/download">@PortalText.Pick("Downloads page", "Pobieranie")</a>.</p>
+        @if (Model.Download.IsAvailable)
+        {
+            <p class="status-note status-note--ready" role="status"><span class="status-icon" aria-hidden="true">✓</span><span>@PortalText.Pick("Available for download", "Dostępny do pobrania")</span></p>
+            <dl class="metadata-grid">
+                <div><dt>@PortalText.Pick("Version", "Wersja")</dt><dd>@Model.Download.Version</dd></div>
+                <div><dt>@PortalText.Pick("Size", "Rozmiar")</dt><dd>@Model.Download.ByteCount.ToString("N0") @PortalText.Pick("bytes", "bajtów")</dd></div>
+                <div class="metadata-grid__wide"><dt>SHA-256</dt><dd><code>@Model.Download.Sha256</code></dd></div>
+            </dl>
+            <a class="text-link" href="/download/launcher">@PortalText.Pick("Download", "Pobierz") @Model.Download.FileName <span aria-hidden="true">↗</span></a>
+        }
+        else
+        {
+            <p class="status-note status-note--unavailable" role="alert"><span class="status-icon" aria-hidden="true">!</span><span>@PortalText.Pick("Launcher installer unavailable", "Instalator launchera niedostępny")</span></p>
+            <p class="muted">@(PortalText.Pick(
+                "The installer is temporarily offline. See the ",
+                "Instalator jest chwilowo niedostępny. Zajrzyj na stronę ")
+                )<a href="/download">@PortalText.Pick("Downloads page", "Pobieranie")</a>@PortalText.Pick(" for manual archive options.", ", aby pobrać archiwum ręcznie.")</p>
+        }
+    </div>
+</section>
+
+<section class="feature-grid" aria-label="@PortalText.Pick("Portal guidance", "Wskazówki portalu")">
+    <article class="feature-card"><span class="feature-card__number">01</span><h2>@PortalText.Pick("Register", "Rejestracja")</h2><p>@PortalText.Pick(
+        "Use an e-mail address you can access. It becomes your game login.",
+        "Użyj adresu e-mail, do którego masz dostęp. To on stanie się Twoim loginem do gry.")</p></article>
+    <article class="feature-card"><span class="feature-card__number">02</span><h2>@PortalText.Pick("Verify", "Weryfikacja")</h2><p>@PortalText.Pick(
+        "Follow the one-time link in your inbox to move your registration forward.",
+        "Kliknij jednorazowy link z wiadomości, aby przeprowadzić rejestrację do końca.")</p></article>
+    <article class="feature-card"><span class="feature-card__number">03</span><h2>@PortalText.Pick("Enter Mir", "Wejdź do Mir")</h2><p>@PortalText.Pick(
+        "Once approved, launch the client and return to the world.",
+        "Po zatwierdzeniu uruchom klienta i wróć do świata.")</p></article>
+</section>

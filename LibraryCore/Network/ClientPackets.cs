@@ -179,6 +179,8 @@ namespace Library.Network.ClientPackets
         public GridType Grid { get; set; }
     }
 
+    public sealed class ItemRecover : Packet { }
+
     public sealed class ItemDelete : Packet
     {
         public GridType Grid { get; set; }
@@ -546,6 +548,16 @@ namespace Library.Network.ClientPackets
     public sealed class TradeConfirm : Packet
     {
 
+    }
+
+    public sealed class GuildFragmentOperation : Packet
+    {
+        public GuildFragmentAction Action { get; set; }
+        public GridType SourceGrid { get; set; }
+        public int Slot { get; set; }
+        public int ItemIndex { get; set; }
+        public long Count { get; set; }
+        public long Revision { get; set; }
     }
 
     public sealed class GuildCreate : Packet

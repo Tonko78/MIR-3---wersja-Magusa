@@ -1,4 +1,4 @@
-﻿using Library.Network;
+using Library.Network;
 using Library.SystemModels;
 using MirDB;
 using System;
@@ -294,7 +294,7 @@ namespace Library
             2090000,
         };
 
-        public const int InventorySize = 48,
+        public const int InventorySize = 169,
                          EquipmentSize = 22,
                          CompanionInventorySize = 30,
                          CompanionEquipmentSize = 4,
@@ -948,6 +948,15 @@ namespace Library
         public List<ClientUserItem> Items { get; set; }
     }
 
+    public enum GuildFragmentAction { Deposit, Withdraw, Assemble, Expand }
+
+    public static class GuildFragmentSettings
+    {
+        public const int SlotOffset = 1000;
+        public const int InitialCapacity = 100;
+        public const int MaxCapacity = 500;
+    }
+
     public class ClientGuildInfo
     {
         public string GuildName { get; set; }
@@ -976,6 +985,9 @@ namespace Library
         public List<ClientGuildMemberInfo> Members { get; set; }
 
         public List<ClientUserItem> Storage { get; set; }
+        public List<ClientUserItem> FragmentStorage { get; set; }
+        public int FragmentStorageLimit { get; set; }
+        public long FragmentRevision { get; set; }
 
         [IgnorePropertyPacket]
         public GuildPermission Permission => Members.FirstOrDefault(x => x.Index == UserIndex)?.Permission ?? GuildPermission.None;

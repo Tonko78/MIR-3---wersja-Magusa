@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 
 namespace Library
@@ -1895,6 +1895,9 @@ namespace Library
         FundsMerchant = 32,
         FundsMarket = 64,
         StartWar = 128,
+        FragmentDeposit = 256,
+        FragmentWithdraw = 512,
+        FragmentAssemble = 1024,
     }
 
     public enum NPCRequirementType

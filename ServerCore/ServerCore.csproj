@@ -17,5 +17,11 @@
   <ItemGroup>
     <ProjectReference Include="..\LibraryCore\LibraryCore.csproj" />
     <ProjectReference Include="..\ServerLibrary\ServerLibrary.csproj" />
+    <ProjectReference Include="..\AccountPortal.Contracts\AccountPortal.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>ServerCore.Tests</_Parameter1>
+    </AssemblyAttribute>
   </ItemGroup>
 </Project>
