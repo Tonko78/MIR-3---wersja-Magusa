@@ -124,10 +124,10 @@ namespace Server.Envir
         public static int CombatPetMaxCount { get; set; } = 4;
         public static bool PersistCombatPets { get; set; } = true;
         public static bool CombatPetExperienceEnabled { get; set; } = true;
-        public static int CombatPetMaxLevel { get; set; } = 7;
+        public static int CombatPetMaxLevel { get; set; } = 15;
         public static int CombatPetExperiencePerKill { get; set; } = 100;
         public static int CombatPetExperiencePerLevel { get; set; } = 1000;
-        public static int CombatPetStatBonusPerLevel { get; set; } = 10;
+        public static int CombatPetStatBonusPerLevel { get; set; } = 5;
 
         [ConfigSection("Items")]
         public static TimeSpan DropDuration { get; set; } = TimeSpan.FromMinutes(60);

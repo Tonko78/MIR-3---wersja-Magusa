@@ -17,7 +17,9 @@ try
     int checks = 0;
     void Check(bool value, string message) { checks++; if (!value) throw new Exception(message); }
     var assemblies = new[] { typeof(MonsterInfo).Assembly, typeof(CharacterInfo).Assembly };
-    string root = Path.GetFullPath(args[0]) + Path.DirectorySeparatorChar;
+    string root = Path.GetFullPath(args.Length > 0 ? args[0] :
+        Path.Combine(Environment.GetEnvironmentVariable("TMPDIR") ?? Path.GetTempPath(),
+            "CombatPetChecks-" + Guid.NewGuid().ToString("N"))) + Path.DirectorySeparatorChar;
     Session Load(string path)
     {
         var session = new Session(SessionMode.Both, path, path + "backup/") { BackUp = false };
@@ -32,10 +34,10 @@ try
     Config.PersistCombatPets = Config.CombatPetExperienceEnabled = true;
     Config.ElectricShockPetDurationHours = 0;
     Config.CombatPetMaxCount = 4;
-    Config.CombatPetMaxLevel = 7;
+    Config.CombatPetMaxLevel = 15;
     Config.CombatPetExperiencePerKill = 100;
     Config.CombatPetExperiencePerLevel = 1000;
-    Config.CombatPetStatBonusPerLevel = 10;
+    Config.CombatPetStatBonusPerLevel = 5;
     SEnvir.Now = new DateTime(2026, 10, 6, 12, 0, 0);
     SEnvir.Random = new Random(73);
     var session = Load(root);
@@ -116,8 +118,8 @@ try
     }
     var victim = WildVictim(); victim.Attacked(pet, 1000, Element.None, canCrit: false);
     Check(victim.Dead && pet.CombatPetLevel == 1 && pet.CombatPetExperience == 50, "Real combat did not award pet EXP.");
-    Check(pet.CurrentHP == 317 && pet.Stats[Stat.Health] == (1000 + 1000 * pet.SummonLevel / 10) * 110 / 100,
-        $"Level-up healed pet or did not improve stats: HP={pet.CurrentHP}, max={pet.Stats[Stat.Health]}, summon={pet.SummonLevel}.");
+    Check(pet.CurrentHP == 317 && pet.Stats[Stat.Health] == (1000 + 1000 * pet.SummonLevel / 10) * 75 / 100,
+        $"Level-up healed pet or did not apply the L1 penalty: HP={pet.CurrentHP}, max={pet.Stats[Stat.Health]}, summon={pet.SummonLevel}.");
     Check(((S.ObjectMonster)pet.GetInfoPacket(wizard)).CustomName.Contains("Lv. 1 | EXP 2.5%"), "Pet spawn packet hides level/experience.");
     pet.ProcessNameColour(); Check(pet.NameColour == Color.LightGreen, "Level one pet colour missing.");
     long afterKill = pet.CombatPetExperience; victim.Die();
@@ -138,7 +140,10 @@ try
     idlePet.SetHP(0);
     secondPet.SetHP(0);
     pet.GainCombatPetExperience(long.MaxValue);
-    Check(pet.CombatPetLevel == 7 && pet.CombatPetExperience == 0, "Level cap or large experience overflowed.");
+    Check(pet.CombatPetLevel == 15 && pet.CombatPetExperience == 0 && pet.CombatPetDisplayName.Contains("MAX"),
+        "Level cap, MAX label or large experience overflowed.");
+    pet.GainCombatPetExperience(long.MaxValue);
+    Check(pet.CombatPetLevel == 15 && pet.CombatPetExperience == 0, "Pet advanced beyond L15.");
     pet.CombatPetLevel = 2; pet.CombatPetExperience = 321; pet.RefreshStats(); pet.SetHP(317);
     wizard.PetMode = PetMode.None;
     foreach (Cell cell in secondMap.ValidCells) cell.Movements = [];
@@ -195,6 +200,53 @@ try
     var skeletonMagic = Learn(tao, MagicType.SummonSkeleton);
     var skeletonInfo = MonsterDefinition("Skeleton", MonsterFlag.Skeleton);
     var skeleton = SpawnPet(tao, skeletonInfo, skeletonMagic);
+    Check(CombatPetSettings.MaxLevel == 15 && CombatPetSettings.StatBonusPerLevel == 5,
+        "Combat pet settings do not match the new curve.");
+    long totalExperience = 0;
+    for (int level = 0; level < 15; level++)
+    {
+        Check(CombatPetSettings.ExperienceRequired(level) == 1000L * (level + 1),
+            $"Incorrect EXP requirement at L{level}.");
+        totalExperience += CombatPetSettings.ExperienceRequired(level);
+    }
+    Check(totalExperience == 120000, "L0 to L15 requires an incorrect EXP total.");
+    skeleton.CombatPetLevel = 6; skeleton.RefreshStats();
+    int baseHealth = skeleton.Stats[Stat.Health];
+    skeleton.CombatPetLevel = 0; skeleton.RefreshStats();
+    for (int level = 1; level <= 15; level++)
+    {
+        skeleton.GainCombatPetExperience(1000L * level);
+        Check(skeleton.CombatPetLevel == level && skeleton.CombatPetExperience == 0,
+            $"Exact EXP did not advance to L{level}.");
+        Check(skeleton.Stats[Stat.Health] == baseHealth + (long)baseHealth * ((level - 6) * 5) / 100,
+            $"Incorrect stat curve at L{level}.");
+        if (level <= 5) Check(skeleton.Stats[Stat.Health] < baseHealth, $"L{level} is not below base stats.");
+        if (level == 6) Check(skeleton.Stats[Stat.Health] == baseHealth, "L6 is not the base stat value.");
+        if (level == 7) Check(skeleton.Stats[Stat.Health] > baseHealth, "L7 does not exceed base stats.");
+        Color expectedColour = level >= 12 ? Color.Gold : level >= 8 ? Color.Orchid :
+            level >= 7 ? Color.LightSkyBlue : Color.LightGreen;
+        Check(skeleton.CombatPetNameColour == expectedColour, $"Incorrect colour at L{level}.");
+    }
+    skeleton.GainCombatPetExperience(long.MaxValue);
+    Check(skeleton.CombatPetLevel == 15 && skeleton.CombatPetExperience == 0 &&
+        skeleton.CombatPetDisplayName.Contains("MAX"), "Taoist pet exceeded L15 or lacks MAX label.");
+    var growthStats = new[] { Stat.Health, Stat.MinAC, Stat.MaxAC, Stat.MinMR, Stat.MaxMR,
+        Stat.MinDC, Stat.MaxDC, Stat.MinMC, Stat.MaxMC, Stat.MinSC, Stat.MaxSC, Stat.Accuracy, Stat.Agility };
+    var applyStats = typeof(MonsterObject).GetMethod("ApplyCombatPetStats", BindingFlags.Instance | BindingFlags.NonPublic);
+    for (int level = 1; level <= 15; level++)
+    {
+        skeleton.CombatPetLevel = level;
+        foreach (Stat stat in growthStats) skeleton.Stats[stat] = 100;
+        applyStats.Invoke(skeleton, null);
+        foreach (Stat stat in growthStats)
+            Check(skeleton.Stats[stat] == 100 + (level - 6) * 5, $"Incorrect {stat} at L{level}.");
+    }
+    skeleton.CombatPetLevel = 1;
+    foreach (Stat stat in growthStats) skeleton.Stats[stat] = -100;
+    applyStats.Invoke(skeleton, null);
+    foreach (Stat stat in growthStats) Check(skeleton.Stats[stat] == 0, $"Negative {stat} escaped the clamp.");
+    skeleton.CombatPetLevel = 0; skeleton.CombatPetExperience = 0; skeleton.RefreshStats();
+    Check(skeleton.CombatPetNameColour == Color.White, "Default pet colour is not White.");
     var taoVictim = new MonsterObject { MonsterInfo = tameInfo }; taoVictim.Spawn(tao.CurrentMap, new Point(2, 2));
     taoVictim.Attacked(skeleton, 5000, Element.None, canCrit: false);
     Check(taoVictim.Dead && skeleton.CombatPetExperience == 100, "Taoist real combat did not award EXP.");

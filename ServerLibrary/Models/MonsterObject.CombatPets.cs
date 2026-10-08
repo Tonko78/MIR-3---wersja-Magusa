@@ -14,8 +14,8 @@ namespace Server.Models
             $"{MonsterInfo.MonsterName} [Lv. {CombatPetLevel} | EXP {(100m * CombatPetExperience / CombatPetSettings.ExperienceRequired(CombatPetLevel)).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)}%]";
         public System.Drawing.Color CombatPetNameColour => CombatPetLevel switch
         {
-            >= 7 => System.Drawing.Color.Gold, >= 5 => System.Drawing.Color.Orchid,
-            >= 3 => System.Drawing.Color.LightSkyBlue, >= 1 => System.Drawing.Color.LightGreen,
+            >= 12 => System.Drawing.Color.Gold, >= 8 => System.Drawing.Color.Orchid,
+            >= 7 => System.Drawing.Color.LightSkyBlue, >= 1 => System.Drawing.Color.LightGreen,
             _ => System.Drawing.Color.White
         };
         public void BroadcastCombatPetProgress()
@@ -54,7 +54,7 @@ namespace Server.Models
         private void ApplyCombatPetStats()
         {
             if (!IsCombatPet) return;
-            int bonus = Math.Clamp(CombatPetLevel, 0, CombatPetSettings.MaxLevel) * CombatPetSettings.StatBonusPerLevel;
+            int bonus = (CombatPetLevel - 6) * CombatPetSettings.StatBonusPerLevel;
             foreach (Stat stat in new[] { Stat.Health, Stat.MinAC, Stat.MaxAC, Stat.MinMR, Stat.MaxMR,
                 Stat.MinDC, Stat.MaxDC, Stat.MinMC, Stat.MaxMC, Stat.MinSC, Stat.MaxSC, Stat.Accuracy, Stat.Agility })
                 Stats[stat] = (int)Math.Clamp(Stats[stat] + (long)Stats[stat] * bonus / 100, 0, int.MaxValue);
