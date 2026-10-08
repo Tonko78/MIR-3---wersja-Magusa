@@ -49,3 +49,12 @@ Start at the selected feature's anchors; packet lists are entry points, not exha
 * **Client:** Models MonsterObject.cs and FrameSet; represented by S.ObjectMonster/ObjectMove/ObjectAttack/ObjectMagic/ObjectDied/ObjectRemove, without a client spawn request.
 * **Persistence / rules:** MonsterInfo/RespawnInfo describe content; a live MonsterObject is simulation state. Target choice belongs on the server; subclass overrides may supersede base hooks.
 * **Start here:** MonsterObject.GetMonster; selected subclass; MonsterObject.ProcessSearch/ProcessTarget. For new visuals also client MonsterObject.cs.
+
+## Persistent combat pets
+
+* **Start here:** [PlayerObject.CombatPets.cs](../../ServerLibrary/Models/PlayerObject.CombatPets.cs) owns save/restore, pending-slot accounting and map recalls; [MonsterObject.CombatPets.cs](../../ServerLibrary/Models/MonsterObject.CombatPets.cs) owns damage participation, separate combat EXP/level and stat growth.
+* **Spells:** ElectricShock uses `CombatPetSettings.TameDeadline` (default unlimited); Taoist summons have unlimited duration. The five Taoist summon handlers restore saved pets before summoning and save newly spawned pets. Combat growth is separate from the learned spell's SummonLevel; tame eligibility remains authoritative. `CombatPetSettings.MaxCount` sets the common slot limit (default four) for both classes, including pending saved pets.
+* **Lifetime / persistence:** `PlayerObject.StopGame` snapshots before preserving despawn, `OnSpawned` restores after player setup, and `OnLocationChanged` recalls after a map change or retries a blocked restore/recall. `SEnvir.Save` snapshots online pets before the session save. Pet death, owner death and untaming delete records; captured pets transferred to another owner lose the former owner's progression.
+* **State / verification:** [UserCombatPet.cs](../../ServerLibrary/DBModels/UserCombatPet.cs) stores HP, combat level/EXP, source magic, summon level, remaining online duration and supporting magic references. Temporary targets/poisons are runtime state. `[CombatPets]` configuration lives in `ServerLibrary/Envir/Config.cs`; [CombatPetChecks](../../Tests/CombatPetChecks/CombatPetChecks.csproj) exercises combat and persistence without a graphical client.
+
+Pet combat level/EXP labels: ObjectMonster.CustomName for spawn; ObjectPetOwnerChanged.CustomName for updates; compatible client/server builds required.

@@ -1,4 +1,4 @@
-# Networking
+﻿# Networking
 
 ## Start here
 
@@ -30,7 +30,6 @@ Use the [canonical crafting packet flow](CANONICAL_EXAMPLES.md#packet-flow) for 
 
 * [Movement](gameplay/WORLD_AND_MOVEMENT.md#movement-maps-and-teleportation): C.Move, S.ObjectMove/UserLocation; [client reconciliation](CLIENT_RUNTIME.md#object-and-animation-lifecycle).
 * [Item transfer](gameplay/ITEMS_AND_ECONOMY.md#inventory-equipment-and-storage): C/S.ItemMove, ownership/slot changes and grid locks.
-* [Group loot](gameplay/SOCIAL_AND_GROUPS.md#groups-and-looking-for-group): ClientUser carries the server-wide availability flag; C.GroupLootSettings/Share/Take/Vote, S.GroupLootUpdate/VotePrompt/Result and the runtime owner in PlayerObject.GroupLoot.cs handle active settings, bag state, manual claims and distribution.
 * [Visibility](SERVER_RUNTIME.md#maps-and-broadcasts) and [client object lifecycle](CLIENT_RUNTIME.md#object-and-animation-lifecycle): object creation/removal is server-driven.
 
 Spawns, damage, buffs and visibility updates can be unsolicited broadcasts; not every feature is request/reply.
@@ -81,3 +80,5 @@ SystemDBSync's caller is **`Server/Views/SyncForm.cs`**, which posts the editor 
 4. Delegate player behavior to PlayerObject/the appropriate partial; preserve synchronous state ownership.
 5. If needed, add an S packet and `public void Process(S.NewUpdate p)` in CConnection; update the correct model and dialog.
 6. Audit wire IDs/properties, enum values, observer visibility, rejection/lock release, lifecycle cancellation and matched builds.
+
+Item recovery: C.ItemRecover -> PlayerObject.RecoverDeletedItem; S.ItemRecovered restores the exact instance at its authoritative inventory slot (never via the merging ItemsGained path); S.ItemRecycleState updates the inventory undo countdown. Pet labels use ObjectMonster.CustomName and ObjectPetOwnerChanged.CustomName. Deploy matching client/server/LibraryCore builds.
