@@ -85,7 +85,12 @@ namespace Server.Models.Magics
             Cell cell = map.GetCell(location);
 
             if (cell == null || cell.Movements != null || !ob.Spawn(map, location))
-                ob.Spawn(CurrentMap, CurrentLocation);
+                if (!ob.Spawn(CurrentMap, CurrentLocation))
+                {
+                    Player.Pets.Remove(ob);
+                    ob.PetOwner = null;
+                    return;
+                }
 
             ob.SetHP(ob.Stats[Stat.Health]);
             Player.SaveCombatPet(ob);

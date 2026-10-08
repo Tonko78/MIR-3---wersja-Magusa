@@ -95,7 +95,12 @@ namespace Server.Models.Magics
             Player.LogMilestone(MilestoneType.PetSummon, 1, monster: ob.MonsterInfo);
 
             if (cell == null || cell.Movements != null || !ob.Spawn(cell.Map, cell.Location))
-                ob.Spawn(CurrentMap, CurrentLocation);
+                if (!ob.Spawn(CurrentMap, CurrentLocation))
+                {
+                    Player.Pets.Remove(ob);
+                    ob.PetOwner = null;
+                    return;
+                }
 
             ob.SetHP(ob.Stats[Stat.Health]);
             Player.SaveCombatPet(ob);
