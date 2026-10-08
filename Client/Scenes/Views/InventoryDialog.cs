@@ -377,7 +377,7 @@ namespace Client.Scenes.Views
             UndoDeleteButton.Visible = count > 0 && InvMode == InventoryMode.Normal;
             UndoDeleteButton.Enabled = seconds > 0;
             UndoDeleteButton.Label.Text = $"Undo ({seconds}s)";
-            UndoDeleteButton.Hint = $"To recover: {count}. Click to restore the last one. Each disappears after 45 seconds."
+            UndoDeleteButton.Hint = $"To recover: {count}. Click to restore the last one. Each disappears after 45 seconds.";
         }
 
         private void DeleteItem(DXItemCell cell)
